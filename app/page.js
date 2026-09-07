@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  BarChart3, BookOpen, CalendarDays, Check, ChevronDown, CirclePlus, Coins,
-  Headphones, LayoutDashboard, Mic2, Minus, PenLine, Plus, Save, Search,
-  Settings2, ShieldCheck, Sparkles, Trash2, Trophy, UserCheck, Users, X, Medal, TrendingUp, Award, Crown
+  BookOpen, CalendarDays, Check, ChevronDown, CirclePlus, Coins,
+  LayoutDashboard, Minus, Plus, Save, Search,
+  Settings2, ShieldCheck, Sparkles, Trash2, Trophy, UserCheck, Users, X, Medal, TrendingUp, Crown
 } from 'lucide-react';
 
 const DAY_PLAN = [
@@ -31,18 +31,19 @@ const DAY_PLAN = [
 ];
 
 const MODULES = [
-  { key: 'speaking', label: 'Speaking', icon: Mic2 },
-  { key: 'writing', label: 'Writing', icon: PenLine },
-  { key: 'reading', label: 'Reading', icon: BookOpen },
-  { key: 'listening', label: 'Listening', icon: Headphones },
+  { key: 'speaking' },
+  { key: 'writing' },
+  { key: 'reading' },
+  { key: 'listening' },
 ];
 
-const GROUPS = ['IELTS', 'CEFR', '404'];
+const DEFAULT_GROUPS = ['IELTS', 'CEFR', '404'];
 
 const seed = {
   students: [],
   records: {},
   taskLabels: {},
+  groups: DEFAULT_GROUPS,
   liveLessons: { IELTS: 0, CEFR: 0, '404': 0 },
 };
 
@@ -62,16 +63,23 @@ export default function Home() {
   const [state, setState] = useState(seed);
   const [ready, setReady] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [showAddGroup, setShowAddGroup] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState('2026-09-07');
   const [controlGroup, setControlGroup] = useState('IELTS');
+
+  const groups = useMemo(() => {
+    const saved = Array.isArray(state.groups) ? state.groups : [];
+    const fromStudents = (state.students || []).map(s => s.group).filter(Boolean);
+    return [...new Set([...DEFAULT_GROUPS, ...saved, ...fromStudents])];
+  }, [state.groups, state.students]);
 
   useEffect(() => { setState(loadState()); setReady(true); }, []);
   useEffect(() => { if (ready) localStorage.setItem('ark-tracker-v1', JSON.stringify(state)); }, [state, ready]);
 
   useEffect(() => {
-    if (GROUPS.includes(tab)) setControlGroup(tab);
-  }, [tab]);
+    if (groups.includes(tab)) setControlGroup(tab);
+  }, [tab, groups]);
 
   const scoped = useMemo(() => {
     const list = state.students.filter(s => s.group === controlGroup);
@@ -79,7 +87,7 @@ export default function Home() {
   }, [state.students, controlGroup, query]);
 
   const stats = useMemo(() => {
-    const list = GROUPS.includes(tab) ? state.students.filter(s => s.group === tab) : state.students;
+    const list = groups.includes(tab) ? state.students.filter(s => s.group === tab) : state.students;
     let present = 0, absent = 0, pts = 0, submitted = 0, totalTasks = 0;
     list.forEach(s => {
       pts += s.pts || 0;
@@ -95,20 +103,20 @@ export default function Home() {
       });
     });
     return { students: list.length, present, absent, pts, submitted: pct(submitted, totalTasks) };
-  }, [state, tab]);
+  }, [state, tab, groups]);
 
   const leaderboard = useMemo(() => {
-    const list = GROUPS.includes(tab) ? state.students.filter(s => s.group === tab) : state.students;
+    const list = groups.includes(tab) ? state.students.filter(s => s.group === tab) : state.students;
     return [...list].sort((a,b) => (b.pts||0)-(a.pts||0)).slice(0, 8);
-  }, [state.students, tab]);
+  }, [state.students, tab, groups]);
 
   const dailyChart = useMemo(() => DAY_PLAN.map(d => {
-    const list = GROUPS.includes(tab) ? state.students.filter(s => s.group === tab) : state.students;
+    const list = groups.includes(tab) ? state.students.filter(s => s.group === tab) : state.students;
     if (d.rest) return { ...d, value: null, done: 0, possible: 0 };
     let done = 0, possible = list.length * 4;
     list.forEach(s => MODULES.forEach(m => { if (state.records?.[s.id]?.[d.date]?.modules?.[m.key]) done++; }));
     return { ...d, value: pct(done, possible), done, possible };
-  }), [state, tab]);
+  }), [state, tab, groups]);
 
   const progressSummary = useMemo(() => {
     const lessonDays = dailyChart.filter(d => !d.rest);
@@ -125,26 +133,51 @@ export default function Home() {
     setShowAdd(false);
   };
 
+  const addGroup = (name) => {
+    const clean = name.trim().replace(/\s+/g, ' ');
+    if (!clean) return;
+    const existing = groups.find(g => g.toLowerCase() === clean.toLowerCase());
+    if (existing) {
+      setTab(existing);
+      setControlGroup(existing);
+      setShowAddGroup(false);
+      return;
+    }
+    setState(p => ({
+      ...p,
+      groups: [...new Set([...(Array.isArray(p.groups) ? p.groups : DEFAULT_GROUPS), clean])],
+      liveLessons: { ...(p.liveLessons || {}), [clean]: p.liveLessons?.[clean] || 0 }
+    }));
+    setTab(clean);
+    setControlGroup(clean);
+    setShowAddGroup(false);
+  };
+
   const removeStudent = (id) => setState(p => ({
     ...p,
     students: p.students.filter(s => s.id !== id),
     records: Object.fromEntries(Object.entries(p.records || {}).filter(([k]) => k !== id))
   }));
 
-  const setAttendance = (id, date, value) => setState(p => ({
-    ...p,
-    records: {
-      ...(p.records||{}),
-      [id]: {
-        ...(p.records?.[id]||{}),
-        [date]: {
-          ...(p.records?.[id]?.[date]||{}),
-          attendance: value,
-          modules: p.records?.[id]?.[date]?.modules || {}
+  const setAttendance = (id, date, value) => setState(p => {
+    const oldDay = p.records?.[id]?.[date] || {};
+    const current = oldDay.attendance;
+    const { attendance: _attendance, ...withoutAttendance } = oldDay;
+    const nextDay = current === value
+      ? { ...withoutAttendance, modules: oldDay.modules || {} }
+      : { ...oldDay, attendance: value, modules: oldDay.modules || {} };
+
+    return {
+      ...p,
+      records: {
+        ...(p.records || {}),
+        [id]: {
+          ...(p.records?.[id] || {}),
+          [date]: nextDay
         }
       }
-    }
-  }));
+    };
+  });
 
   const toggleModule = (id, date, key) => setState(p => ({
     ...p,
@@ -202,9 +235,10 @@ export default function Home() {
         <div className="brand"><div className="brand-mark">A</div><div><b>ARK</b><span>TRACKER</span></div></div>
         <nav>
           <button className={tab==='Overall'?'active':''} onClick={()=>setTab('Overall')}><LayoutDashboard size={18}/> Overall</button>
-          <button className={tab==='IELTS'?'active':''} onClick={()=>setTab('IELTS')}><ShieldCheck size={18}/> IELTS</button>
-          <button className={tab==='CEFR'?'active':''} onClick={()=>setTab('CEFR')}><BookOpen size={18}/> CEFR</button>
-          <button className={tab==='404'?'active':''} onClick={()=>setTab('404')}><Users size={18}/> 404</button>
+          {groups.map(group => {
+            const Icon = group === 'IELTS' ? ShieldCheck : group === 'CEFR' ? BookOpen : Users;
+            return <button key={group} className={tab===group?'active':''} onClick={()=>setTab(group)}><Icon size={18}/> {group}</button>;
+          })}
           <button className={tab==='Leaderboard'?'active':''} onClick={()=>setTab('Leaderboard')}><Trophy size={18}/> Leaderboard</button>
         </nav>
         <div className="sidebar-note">
@@ -216,7 +250,10 @@ export default function Home() {
       <section className="content">
         <header className="topbar">
           <div><span className="eyebrow">ARK EDUCATION</span><h1>{tab === 'Leaderboard' ? 'Leaderboard' : `${tab} Dashboard`}</h1><p>Learning progress, attendance and PTS.</p></div>
-          <button className="primary" onClick={()=>setShowAdd(true)}><CirclePlus size={18}/> Add student</button>
+          <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-end'}}>
+            <button className="view-all" style={{height:42,padding:'0 14px'}} onClick={()=>setShowAddGroup(true)}><Plus size={17}/> Add group</button>
+            <button className="primary" onClick={()=>setShowAdd(true)}><CirclePlus size={18}/> Add student</button>
+          </div>
         </header>
 
         {tab !== 'Leaderboard' ? <>
@@ -249,7 +286,7 @@ export default function Home() {
             <div><span className="eyebrow">DAILY CONTROL</span><h2>Attendance & lesson analysis</h2><p className="section-subtitle">Showing <b>{controlGroup}</b> students only · switch group from the dropdown</p></div>
             <div className="controls">
               <label className="search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={`Search ${controlGroup} student`}/></label>
-              <label className="select-wrap group-filter"><Users size={16}/><select value={controlGroup} onChange={e=>setControlGroup(e.target.value)}><option value="IELTS">IELTS group</option><option value="CEFR">CEFR group</option><option value="404">404 group</option></select><ChevronDown size={14}/></label>
+              <label className="select-wrap group-filter"><Users size={16}/><select value={controlGroup} onChange={e=>setControlGroup(e.target.value)}>{groups.map(group=><option key={group} value={group}>{group} group</option>)}</select><ChevronDown size={14}/></label>
               <label className="select-wrap"><CalendarDays size={16}/><select value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}>{DAY_PLAN.map(d=><option key={d.date} value={d.date}>{d.label} · {d.day}{d.rest?' · No lesson':''}</option>)}</select><ChevronDown size={14}/></label>
             </div>
           </div>
@@ -268,11 +305,12 @@ export default function Home() {
 
         {tab !== 'Leaderboard' && <section className="schedule-grid">
           <div className="panel schedule-panel"><div className="panel-head"><div><span className="eyebrow">20-DAY PLAN</span><h2>Lesson calendar</h2></div></div><div className="calendar-grid">{DAY_PLAN.map(d=><button key={d.date} onClick={()=>setSelectedDate(d.date)} className={`${d.rest?'rest':''} ${selectedDate===d.date?'selected':''}`}><b>{d.label}</b><span>{d.rest?'No lesson':'Daily tasks'}</span></button>)}</div></div>
-          <div className="panel live-panel"><div className="panel-head"><div><span className="eyebrow">LIVE LESSONS</span><h2>Weekly counters</h2></div><Settings2 size={20}/></div><LiveCounter label="IELTS" value={state.liveLessons?.IELTS||0} setValue={(v)=>setState(p=>({...p,liveLessons:{...p.liveLessons,IELTS:v}}))}/><LiveCounter label="CEFR" value={state.liveLessons?.CEFR||0} setValue={(v)=>setState(p=>({...p,liveLessons:{...p.liveLessons,CEFR:v}}))}/><LiveCounter label="404" value={state.liveLessons?.['404']||0} setValue={(v)=>setState(p=>({...p,liveLessons:{...p.liveLessons,'404':v}}))}/><p className="muted">Set how many live lessons each group has per week. This is saved in your browser.</p></div>
+          <div className="panel live-panel"><div className="panel-head"><div><span className="eyebrow">LIVE LESSONS</span><h2>Weekly counters</h2></div><Settings2 size={20}/></div>{groups.map(group=><LiveCounter key={group} label={group} value={state.liveLessons?.[group]||0} setValue={(v)=>setState(p=>({...p,liveLessons:{...(p.liveLessons||{}),[group]:v}}))}/>)}<p className="muted">Set how many live lessons each group has per week. This is saved with tracker data.</p></div>
         </section>}
       </section>
 
-      {showAdd && <AddModal onClose={()=>setShowAdd(false)} onAdd={addStudent}/>} 
+      {showAdd && <AddModal groups={groups} onClose={()=>setShowAdd(false)} onAdd={addStudent}/>} 
+      {showAddGroup && <AddGroupModal onClose={()=>setShowAddGroup(false)} onAdd={addGroup}/>} 
     </main>
   );
 }
@@ -295,4 +333,5 @@ function LeaderboardPage({students}) { const list=[...students].sort((a,b)=>(b.p
 
 function Empty({text}) { return <div className="empty"><Users size={30}/><b>Nothing here yet</b><span>{text}</span></div> }
 function LiveCounter({label,value,setValue}) { return <div className="live-counter"><div><b>{label}</b><span>live lessons / week</span></div><div className="pts-control"><button onClick={()=>setValue(Math.max(0,value-1))}><Minus size={14}/></button><strong>{value}</strong><button onClick={()=>setValue(value+1)}><Plus size={14}/></button></div></div> }
-function AddModal({onClose,onAdd}) { const [name,setName]=useState(''); const [group,setGroup]=useState('IELTS'); return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={e=>e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">NEW STUDENT</span><h2>Add to tracker</h2></div><button onClick={onClose}><X size={18}/></button></div><label>Student name<input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Muhammadali Karimov" onKeyDown={e=>{if(e.key==='Enter') onAdd(name,group)}}/></label><label>Group<select value={group} onChange={e=>setGroup(e.target.value)}><option>IELTS</option><option>CEFR</option><option>404</option></select></label><button className="primary full" onClick={()=>onAdd(name,group)}><Save size={17}/> Save student</button></div></div> }
+function AddModal({groups,onClose,onAdd}) { const [name,setName]=useState(''); const [group,setGroup]=useState(groups[0] || 'IELTS'); return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={e=>e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">NEW STUDENT</span><h2>Add to tracker</h2></div><button onClick={onClose}><X size={18}/></button></div><label>Student name<input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Muhammadali Karimov" onKeyDown={e=>{if(e.key==='Enter') onAdd(name,group)}}/></label><label>Group<select value={group} onChange={e=>setGroup(e.target.value)}>{groups.map(g=><option key={g} value={g}>{g}</option>)}</select></label><button className="primary full" onClick={()=>onAdd(name,group)}><Save size={17}/> Save student</button></div></div> }
+function AddGroupModal({onClose,onAdd}) { const [name,setName]=useState(''); return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={e=>e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">NEW GROUP</span><h2>Add group</h2></div><button onClick={onClose}><X size={18}/></button></div><label>Group name<input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. 909" onKeyDown={e=>{if(e.key==='Enter') onAdd(name)}}/></label><button className="primary full" onClick={()=>onAdd(name)}><Save size={17}/> Save group</button></div></div> }
