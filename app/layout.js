@@ -19,6 +19,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className={poppins.variable}>
       <head>
         <script src="/cloud-sync.js" />
+        <script src="/submitted-bars.js" defer />
       </head>
       <body>{children}</body>
     </html>
