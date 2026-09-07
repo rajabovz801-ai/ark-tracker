@@ -20,6 +20,7 @@ export default function RootLayout({ children }) {
       <head>
         <script src="/cloud-sync.js" />
         <script src="/submitted-bars.js" defer />
+        <script src="/overall-tools.js" defer />
       </head>
       <body>{children}</body>
     </html>
