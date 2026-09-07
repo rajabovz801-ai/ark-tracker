@@ -25,10 +25,15 @@
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
   }
 
+  function deletedSet(state) {
+    return new Set(Array.isArray(state.deletedGroups) ? state.deletedGroups : []);
+  }
+
   function groupsOf(state) {
-    const saved = Array.isArray(state.groups) ? state.groups : [];
+    const saved = Array.isArray(state.groups) ? state.groups : CORE_GROUPS;
     const studentGroups = (state.students || []).map(s => s.group).filter(Boolean);
-    return [...new Set([...CORE_GROUPS, ...saved, ...studentGroups])];
+    const deleted = deletedSet(state);
+    return [...new Set([...saved, ...studentGroups, ...CORE_GROUPS])].filter(g => !deleted.has(g));
   }
 
   function groupMetric(state, group) {
@@ -120,7 +125,8 @@
 
     const state = readState();
     const metrics = getMetrics(state);
-    const totalStudents = (state.students || []).length;
+    const visibleGroups = new Set(metrics.map(m => m.group));
+    const totalStudents = (state.students || []).filter(s => visibleGroups.has(s.group)).length;
     const activeGroups = metrics.filter(m => m.students > 0).length;
     const withHomework = metrics.filter(m => m.possible > 0);
     const best = withHomework.length
@@ -183,26 +189,26 @@
   function openDeleteGroupModal() {
     document.querySelector('.delete-group-enhancement-modal')?.remove();
     const state = readState();
-    const customGroups = groupsOf(state).filter(g => !CORE_GROUPS.includes(g));
+    const existingGroups = groupsOf(state);
 
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop delete-group-enhancement-modal';
     backdrop.innerHTML = `
       <div class="modal" role="dialog" aria-modal="true">
         <div class="modal-head">
-          <div><span class="eyebrow">DELETE GROUP</span><h2>Remove a group</h2></div>
+          <div><span class="eyebrow">DELETE GROUP</span><h2>Choose a group to remove</h2></div>
           <button type="button" class="delete-close">×</button>
         </div>
-        ${customGroups.length ? `
-          <label>Group
+        ${existingGroups.length ? `
+          <label>Existing group
             <select class="delete-group-select">
-              ${customGroups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('')}
+              ${existingGroups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('')}
             </select>
           </label>
-          <p class="delete-group-modal-note">Deleting a group also removes its students, attendance, homework records, topics and counters. IELTS, CEFR and 404 are protected core groups.</p>
-          <button type="button" class="primary full delete-group-danger">Delete group</button>
+          <p class="delete-group-modal-note">Select the exact group you want to delete. Its students, attendance, homework records, topics and counters will also be removed.</p>
+          <button type="button" class="primary full delete-group-danger">Delete selected group</button>
         ` : `
-          <p class="delete-group-modal-note">There are no custom groups to delete. IELTS, CEFR and 404 are protected core groups.</p>
+          <p class="delete-group-modal-note">There are no groups to delete.</p>
           <button type="button" class="view-all full delete-close-secondary">Close</button>
         `}
       </div>
@@ -241,9 +247,11 @@
     delete lessonTopics[group];
     delete liveLessons[group];
 
+    const deletedGroups = [...new Set([...(Array.isArray(state.deletedGroups) ? state.deletedGroups : []), group])];
     const next = {
       ...state,
       groups: (Array.isArray(state.groups) ? state.groups : CORE_GROUPS).filter(g => g !== group),
+      deletedGroups,
       students: (state.students || []).filter(s => s.group !== group),
       records: nextRecords,
       taskLabels,
@@ -253,6 +261,38 @@
 
     writeState(next);
     window.location.reload();
+  }
+
+  function enforceDeletedGroups() {
+    const state = readState();
+    const deleted = deletedSet(state);
+    if (!deleted.size) return;
+
+    document.querySelectorAll('.sidebar nav button').forEach(btn => {
+      const name = btn.textContent.trim();
+      if (deleted.has(name)) btn.style.display = 'none';
+    });
+
+    const groupSelect = document.querySelector('.group-filter select');
+    if (groupSelect) {
+      [...groupSelect.options].forEach(option => {
+        if (deleted.has(option.value)) option.remove();
+      });
+      if (deleted.has(groupSelect.value) && groupSelect.options.length) {
+        groupSelect.value = groupSelect.options[0].value;
+        groupSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    document.querySelectorAll('.modal-backdrop:not(.delete-group-enhancement-modal) select').forEach(select => {
+      [...select.options].forEach(option => {
+        if (deleted.has(option.value)) option.remove();
+      });
+      if (deleted.has(select.value) && select.options.length) {
+        select.value = select.options[0].value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
   }
 
   function enableCalendarTopicFocus() {
@@ -276,6 +316,7 @@
   function refresh(force = false) {
     ensureStyles();
     ensureDeleteButton();
+    enforceDeletedGroups();
     enableCalendarTopicFocus();
     const raw = localStorage.getItem(STATE_KEY) || '';
     const heading = document.querySelector('.content > .topbar h1')?.textContent?.trim() || '';
