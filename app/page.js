@@ -184,7 +184,7 @@ export default function Home() {
         const status = taskState(rec.modules?.[key]);
         if (status === 'done') done++;
         else if (status === 'partial') partial++;
-        else notDone++;
+        else if (status === 'notdone') notDone++;
         score += taskScore(rec.modules?.[key]);
       });
     });
@@ -333,7 +333,17 @@ export default function Home() {
 
   const toggleModule = (id, date, key) => setState(p => {
     const current = taskState(p.records?.[id]?.[date]?.modules?.[key]);
-    const next = current === 'partial' ? 'done' : current === 'done' ? 'notdone' : 'partial';
+    const next = current === 'unset'
+      ? 'partial'
+      : current === 'partial'
+        ? 'done'
+        : current === 'done'
+          ? 'notdone'
+          : 'unset';
+    const modules = { ...(p.records?.[id]?.[date]?.modules || {}) };
+    if (next === 'unset') delete modules[key];
+    else modules[key] = next;
+
     return {
       ...p,
       records: {
@@ -342,10 +352,7 @@ export default function Home() {
           ...(p.records?.[id] || {}),
           [date]: {
             ...(p.records?.[id]?.[date] || {}),
-            modules: {
-              ...(p.records?.[id]?.[date]?.modules || {}),
-              [key]: next
-            }
+            modules
           }
         }
       }
@@ -579,7 +586,7 @@ export default function Home() {
                       <span className="eyebrow">STUDENT CHECK</span>
                       <h2>Who did the homework?</h2>
                       <p className="section-subtitle">
-                        Gray/red = not done · yellow = partial · green = done. Click to cycle: Partial → Done → Not done.
+                        White = not marked · yellow = partial · green = done · red = not done. Click to cycle: Partial → Done → Not done → White.
                       </p>
                     </div>
                     <label className="search">
@@ -649,6 +656,7 @@ export default function Home() {
                                 {MODULES.map(m => {
                                   const label = String(state.taskLabels?.[controlGroup]?.[selectedDate]?.[m.key] || '').trim();
                                   const status = taskState(rec.modules?.[m.key]);
+                                  const statusLabel = status === 'partial' ? 'Partial' : status === 'done' ? 'Done' : status === 'notdone' ? 'Not done' : 'Not marked';
                                   return (
                                     <td key={m.key} className="homework-cell">
                                       <button
@@ -656,7 +664,7 @@ export default function Home() {
                                         className={`task-check ${status} ${!label ? 'disabled' : ''}`}
                                         onClick={() => label && toggleModule(s.id, selectedDate, m.key)}
                                         aria-label={`${label || 'No task'} ${status}`}
-                                        title={label ? `${label} — ${status === 'partial' ? 'Partial' : status === 'done' ? 'Done' : 'Not done'}` : 'Write the homework first'}
+                                        title={label ? `${label} — ${statusLabel}` : 'Write the homework first'}
                                       >
                                         {status === 'done' ? <Check size={17}/> : status === 'partial' ? <span className="partial-mark">◐</span> : <Minus size={17}/>} 
                                       </button>
