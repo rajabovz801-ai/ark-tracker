@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BookOpen, CalendarDays, Check, ChevronDown, CirclePlus, Coins,
-  LayoutDashboard, Minus, Plus, Save, Search,
-  Settings2, ShieldCheck, Sparkles, Trash2, Trophy, UserCheck, Users, X, Medal, TrendingUp, Crown
+  AlertTriangle, BookOpen, CalendarDays, Check, ChevronDown, CirclePlus, Coins,
+  Download, LayoutDashboard, Minus, Plus, Save, Search, Settings2, ShieldCheck,
+  Sparkles, Trash2, Trophy, Upload, UserCheck, Users, X, Medal, TrendingUp, Crown
 } from 'lucide-react';
 
 const DAY_PLAN = [
@@ -38,6 +38,8 @@ const MODULES = [
 ];
 
 const DEFAULT_GROUPS = ['IELTS', 'CEFR', '404'];
+const STATE_KEY = 'ark-tracker-v1';
+const LAST_GROUP_KEY = 'ark-tracker-last-group';
 
 const seed = {
   students: [],
@@ -45,19 +47,62 @@ const seed = {
   taskLabels: {},
   lessonTopics: {},
   groups: DEFAULT_GROUPS,
+  deletedGroups: [],
   liveLessons: { IELTS: 0, CEFR: 0, '404': 0 },
 };
 
 function loadState() {
   try {
-    const raw = localStorage.getItem('ark-tracker-v1');
-    return raw ? JSON.parse(raw) : seed;
+    const raw = localStorage.getItem(STATE_KEY);
+    return raw ? { ...seed, ...JSON.parse(raw) } : seed;
   } catch {
     return seed;
   }
 }
 
 function pct(n, d) { return d ? Math.round((n / d) * 100) : 0; }
+
+function localISODate() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function planDateForToday() {
+  const today = localISODate();
+  if (DAY_PLAN.some(d => d.date === today)) return today;
+  const past = DAY_PLAN.filter(d => d.date <= today).at(-1);
+  return past?.date || DAY_PLAN[0].date;
+}
+
+function taskState(value) {
+  if (value === true || value === 'done') return 'done';
+  if (value === 'partial') return 'partial';
+  if (value === 'notdone') return 'notdone';
+  return 'unset';
+}
+
+function taskScore(value) {
+  const status = taskState(value);
+  if (status === 'done') return 1;
+  if (status === 'partial') return 0.5;
+  return 0;
+}
+
+function visibleGroups(state) {
+  const deleted = new Set(Array.isArray(state.deletedGroups) ? state.deletedGroups : []);
+  const saved = Array.isArray(state.groups) ? state.groups : DEFAULT_GROUPS;
+  const fromStudents = (state.students || []).map(s => s.group).filter(Boolean);
+  return [...new Set([...DEFAULT_GROUPS, ...saved, ...fromStudents])].filter(g => !deleted.has(g));
+}
+
+function assignedKeysFrom(state, group, date) {
+  return MODULES
+    .filter(m => String(state.taskLabels?.[group]?.[date]?.[m.key] || '').trim())
+    .map(m => m.key);
+}
 
 export default function Home() {
   const [tab, setTab] = useState('Overall');
@@ -66,38 +111,48 @@ export default function Home() {
   const [showAdd, setShowAdd] = useState(false);
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [query, setQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState('2026-09-07');
+  const [selectedDate, setSelectedDate] = useState(DAY_PLAN[0].date);
   const [controlGroup, setControlGroup] = useState('IELTS');
+  const restoreRef = useRef(null);
 
-  const groups = useMemo(() => {
-    const saved = Array.isArray(state.groups) ? state.groups : [];
-    const fromStudents = (state.students || []).map(s => s.group).filter(Boolean);
-    return [...new Set([...DEFAULT_GROUPS, ...saved, ...fromStudents])];
-  }, [state.groups, state.students]);
+  const groups = useMemo(() => visibleGroups(state), [state.groups, state.students, state.deletedGroups]);
 
-  useEffect(() => { setState(loadState()); setReady(true); }, []);
   useEffect(() => {
-    if (ready) localStorage.setItem('ark-tracker-v1', JSON.stringify(state));
+    const loaded = loadState();
+    setState(loaded);
+    const available = visibleGroups(loaded);
+    const savedGroup = localStorage.getItem(LAST_GROUP_KEY);
+    setControlGroup(available.includes(savedGroup) ? savedGroup : (available[0] || ''));
+    setSelectedDate(planDateForToday());
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (ready) localStorage.setItem(STATE_KEY, JSON.stringify(state));
   }, [state, ready]);
+
+  useEffect(() => {
+    if (ready && controlGroup) localStorage.setItem(LAST_GROUP_KEY, controlGroup);
+  }, [controlGroup, ready]);
 
   useEffect(() => {
     if (groups.includes(tab)) setControlGroup(tab);
   }, [tab, groups]);
+
+  useEffect(() => {
+    if (groups.length && !groups.includes(controlGroup)) setControlGroup(groups[0]);
+  }, [groups, controlGroup]);
 
   const scoped = useMemo(() => {
     const list = (state.students || []).filter(s => s.group === controlGroup);
     return list.filter(s => s.name.toLowerCase().includes(query.toLowerCase()));
   }, [state.students, controlGroup, query]);
 
-  const assignedKeys = (group, date) => MODULES
-    .filter(m => String(state.taskLabels?.[group]?.[date]?.[m.key] || '').trim())
-    .map(m => m.key);
-
   const stats = useMemo(() => {
     const list = groups.includes(tab)
       ? (state.students || []).filter(s => s.group === tab)
-      : (state.students || []);
-    let present = 0, absent = 0, pts = 0, submitted = 0, totalTasks = 0;
+      : (state.students || []).filter(s => groups.includes(s.group));
+    let present = 0, absent = 0, pts = 0, submittedScore = 0, totalTasks = 0;
 
     list.forEach(s => {
       pts += s.pts || 0;
@@ -106,38 +161,41 @@ export default function Home() {
         const r = state.records?.[s.id]?.[d.date];
         if (r?.attendance === 'present') present++;
         if (r?.attendance === 'absent') absent++;
-
-        const active = MODULES.filter(m =>
-          String(state.taskLabels?.[s.group]?.[d.date]?.[m.key] || '').trim()
-        );
-        active.forEach(m => {
+        assignedKeysFrom(state, s.group, d.date).forEach(key => {
           totalTasks++;
-          if (r?.modules?.[m.key]) submitted++;
+          submittedScore += taskScore(r?.modules?.[key]);
         });
       });
     });
 
-    return { students: list.length, present, absent, pts, submitted: pct(submitted, totalTasks) };
+    return { students: list.length, present, absent, pts, submitted: pct(submittedScore, totalTasks) };
   }, [state, tab, groups]);
 
   const dailySummary = useMemo(() => {
     const list = (state.students || []).filter(s => s.group === controlGroup);
-    const active = assignedKeys(controlGroup, selectedDate);
-    let done = 0, present = 0, absent = 0;
+    const active = assignedKeysFrom(state, controlGroup, selectedDate);
+    let done = 0, partial = 0, notDone = 0, present = 0, absent = 0, score = 0;
 
     list.forEach(s => {
       const rec = state.records?.[s.id]?.[selectedDate] || {};
       if (rec.attendance === 'present') present++;
       if (rec.attendance === 'absent') absent++;
-      active.forEach(key => { if (rec.modules?.[key]) done++; });
+      active.forEach(key => {
+        const status = taskState(rec.modules?.[key]);
+        if (status === 'done') done++;
+        else if (status === 'partial') partial++;
+        else notDone++;
+        score += taskScore(rec.modules?.[key]);
+      });
     });
 
     const possible = list.length * active.length;
     return {
       students: list.length,
       done,
-      notDone: Math.max(0, possible - done),
-      progress: pct(done, possible),
+      partial,
+      notDone,
+      progress: pct(score, possible),
       present,
       absent,
       assigned: active.length,
@@ -147,41 +205,77 @@ export default function Home() {
   const leaderboard = useMemo(() => {
     const list = groups.includes(tab)
       ? (state.students || []).filter(s => s.group === tab)
-      : (state.students || []);
-    return [...list].sort((a,b) => (b.pts||0)-(a.pts||0)).slice(0, 8);
+      : (state.students || []).filter(s => groups.includes(s.group));
+    return [...list].sort((a,b) => (b.pts || 0) - (a.pts || 0)).slice(0, 8);
   }, [state.students, tab, groups]);
 
   const dailyChart = useMemo(() => DAY_PLAN.map(d => {
     const list = groups.includes(tab)
       ? (state.students || []).filter(s => s.group === tab)
-      : (state.students || []);
-    if (d.rest) return { ...d, value: null, done: 0, possible: 0 };
+      : (state.students || []).filter(s => groups.includes(s.group));
+    if (d.rest) return { ...d, value: null, score: 0, possible: 0 };
 
-    let done = 0, possible = 0;
+    let score = 0, possible = 0;
     list.forEach(s => {
-      const active = MODULES.filter(m =>
-        String(state.taskLabels?.[s.group]?.[d.date]?.[m.key] || '').trim()
-      );
+      const active = assignedKeysFrom(state, s.group, d.date);
       possible += active.length;
-      active.forEach(m => {
-        if (state.records?.[s.id]?.[d.date]?.modules?.[m.key]) done++;
+      active.forEach(key => {
+        score += taskScore(state.records?.[s.id]?.[d.date]?.modules?.[key]);
       });
     });
 
-    return { ...d, value: possible ? pct(done, possible) : 0, done, possible };
+    return { ...d, value: possible ? pct(score, possible) : 0, score, possible };
   }), [state, tab, groups]);
 
   const progressSummary = useMemo(() => {
     const assignedDays = dailyChart.filter(d => !d.rest && d.possible > 0);
-    const finished = assignedDays.filter(d => d.done === d.possible).length;
-    const open = assignedDays.filter(d => d.done < d.possible && d.done > 0).length;
-    const untouched = assignedDays.filter(d => d.done === 0).length;
+    const finished = assignedDays.filter(d => d.score === d.possible).length;
+    const open = assignedDays.filter(d => d.score < d.possible && d.score > 0).length;
+    const untouched = assignedDays.filter(d => d.score === 0).length;
     return { finished, open, untouched, assignedDays: assignedDays.length };
   }, [dailyChart]);
 
+  const blackList = useMemo(() => {
+    const today = localISODate();
+    const list = (state.students || []).filter(s => groups.includes(s.group));
+
+    return list.map(student => {
+      let streak = 0;
+      let streakDays = [];
+
+      DAY_PLAN.forEach(day => {
+        if (day.rest || day.date > today) return;
+        const active = assignedKeysFrom(state, student.group, day.date);
+        if (!active.length) return;
+
+        const rawValues = active.map(key => state.records?.[student.id]?.[day.date]?.modules?.[key]);
+        const statuses = rawValues.map(taskState);
+
+        let result = null;
+        if (day.date === today) {
+          if (statuses.some(s => s === 'partial' || s === 'notdone')) result = 'bad';
+          else if (statuses.every(s => s === 'done')) result = 'good';
+          else result = 'pending';
+        } else {
+          result = statuses.every(s => s === 'done') ? 'good' : 'bad';
+        }
+
+        if (result === 'bad') {
+          streak += 1;
+          streakDays.push({ date: day.date, label: day.label, statuses });
+        } else if (result === 'good') {
+          streak = 0;
+          streakDays = [];
+        }
+      });
+
+      return streak >= 2 ? { student, streak, days: streakDays.slice(-2) } : null;
+    }).filter(Boolean).sort((a,b) => b.streak - a.streak || a.student.name.localeCompare(b.student.name));
+  }, [state, groups]);
+
   const addStudent = (name, group) => {
     const clean = name.trim();
-    if (!clean) return;
+    if (!clean || !group) return;
     setState(p => ({
       ...p,
       students: [...(p.students || []), { id: crypto.randomUUID(), name: clean, group, pts: 0 }]
@@ -199,9 +293,11 @@ export default function Home() {
       setShowAddGroup(false);
       return;
     }
+
     setState(p => ({
       ...p,
       groups: [...new Set([...(Array.isArray(p.groups) ? p.groups : DEFAULT_GROUPS), clean])],
+      deletedGroups: (Array.isArray(p.deletedGroups) ? p.deletedGroups : []).filter(g => g.toLowerCase() !== clean.toLowerCase()),
       liveLessons: { ...(p.liveLessons || {}), [clean]: p.liveLessons?.[clean] || 0 }
     }));
     setTab(clean);
@@ -235,22 +331,26 @@ export default function Home() {
     };
   });
 
-  const toggleModule = (id, date, key) => setState(p => ({
-    ...p,
-    records: {
-      ...(p.records || {}),
-      [id]: {
-        ...(p.records?.[id] || {}),
-        [date]: {
-          ...(p.records?.[id]?.[date] || {}),
-          modules: {
-            ...(p.records?.[id]?.[date]?.modules || {}),
-            [key]: !p.records?.[id]?.[date]?.modules?.[key]
+  const toggleModule = (id, date, key) => setState(p => {
+    const current = taskState(p.records?.[id]?.[date]?.modules?.[key]);
+    const next = current === 'partial' ? 'done' : current === 'done' ? 'notdone' : 'partial';
+    return {
+      ...p,
+      records: {
+        ...(p.records || {}),
+        [id]: {
+          ...(p.records?.[id] || {}),
+          [date]: {
+            ...(p.records?.[id]?.[date] || {}),
+            modules: {
+              ...(p.records?.[id]?.[date]?.modules || {}),
+              [key]: next
+            }
           }
         }
       }
-    }
-  }));
+    };
+  });
 
   const setTaskLabel = (group, date, key, value) => setState(p => ({
     ...p,
@@ -284,8 +384,51 @@ export default function Home() {
     )
   }));
 
+  const goToday = () => setSelectedDate(planDateForToday());
+
+  const backupData = () => {
+    const payload = {
+      app: 'ARK Tracker',
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      data: state,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ark-tracker-backup-${localISODate()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const restoreData = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      const data = parsed?.data && typeof parsed.data === 'object' ? parsed.data : parsed;
+      if (!data || !Array.isArray(data.students) || typeof data.records !== 'object') {
+        throw new Error('Invalid backup');
+      }
+      if (!window.confirm('Restore this backup? Current tracker data will be replaced.')) return;
+      const next = { ...seed, ...data };
+      setState(next);
+      const nextGroups = visibleGroups(next);
+      setControlGroup(nextGroups[0] || '');
+      setTab('Overall');
+      setSelectedDate(planDateForToday());
+    } catch {
+      window.alert('This is not a valid ARK Tracker backup file.');
+    }
+  };
+
   const dateInfo = DAY_PLAN.find(d => d.date === selectedDate);
   const currentTopic = state.lessonTopics?.[controlGroup]?.[selectedDate] || '';
+  const title = tab === 'Leaderboard' ? 'Leaderboard' : tab === 'Black list' ? 'Black list' : `${tab} Dashboard`;
 
   return (
     <main className="app-shell">
@@ -309,6 +452,10 @@ export default function Home() {
             );
           })}
 
+          <button className={tab === 'Black list' ? 'active' : ''} onClick={() => setTab('Black list')}>
+            <AlertTriangle size={18}/> Black list <span className="nav-count">{blackList.length}</span>
+          </button>
+
           <button className={tab === 'Leaderboard' ? 'active' : ''} onClick={() => setTab('Leaderboard')}>
             <Trophy size={18}/> Leaderboard
           </button>
@@ -324,26 +471,35 @@ export default function Home() {
         <header className="topbar">
           <div>
             <span className="eyebrow">ARK EDUCATION</span>
-            <h1>{tab === 'Leaderboard' ? 'Leaderboard' : `${tab} Dashboard`}</h1>
+            <h1>{title}</h1>
             <p>Daily lesson topic, homework control and student progress.</p>
           </div>
           <div className="top-actions">
+            <button className="view-all" onClick={backupData}><Download size={16}/> Backup</button>
+            <button className="view-all" onClick={() => restoreRef.current?.click()}><Upload size={16}/> Restore</button>
+            <input ref={restoreRef} type="file" accept="application/json,.json" hidden onChange={restoreData}/>
             <button className="view-all add-group-btn" onClick={() => setShowAddGroup(true)}>
               <Plus size={17}/> Add group
             </button>
-            <button className="primary" onClick={() => setShowAdd(true)}>
+            <button className="primary" onClick={() => setShowAdd(true)} disabled={!groups.length}>
               <CirclePlus size={18}/> Add student
             </button>
           </div>
         </header>
 
-        {tab !== 'Leaderboard' ? (
+        {tab === 'Leaderboard' ? (
+          <LeaderboardPage students={(state.students || []).filter(s => groups.includes(s.group))}/>
+        ) : tab === 'Black list' ? (
+          <BlackListPage items={blackList}/>
+        ) : groups.length === 0 ? (
+          <section className="panel"><Empty text="No groups are available. Add a group to continue."/></section>
+        ) : (
           <>
             <section className="daily-toolbar panel">
               <div className="toolbar-title">
                 <span className="eyebrow">DAILY CONTROL</span>
                 <h2>{controlGroup} · {dateInfo?.label}</h2>
-                <p>Choose the group and day, write the lesson topic and homework, then tick students.</p>
+                <p>Choose the group and day, write the lesson topic and homework, then mark students.</p>
               </div>
               <div className="controls">
                 <label className="select-wrap group-filter">
@@ -362,13 +518,15 @@ export default function Home() {
                   </select>
                   <ChevronDown size={14}/>
                 </label>
+                <button className="view-all today-btn" onClick={goToday}><CalendarDays size={15}/> Today</button>
               </div>
             </section>
 
             <section className="kpis daily-kpis">
               <Kpi tone="neutral" icon={Users} label="Students" value={dailySummary.students} hint={`${controlGroup} group`} />
               <Kpi tone="green" icon={Check} label="Homework done" value={dailySummary.done} hint={`${dailySummary.assigned} task${dailySummary.assigned === 1 ? '' : 's'} assigned`} />
-              <Kpi tone="red" icon={Minus} label="Homework not done" value={dailySummary.notDone} hint="remaining checks" />
+              <Kpi tone="yellow" icon={Minus} label="Partial" value={dailySummary.partial} hint="counts as 50%" />
+              <Kpi tone="red" icon={Minus} label="Homework not done" value={dailySummary.notDone} hint="not completed" />
               <Kpi tone="orange" icon={UserCheck} label="Absent" value={dailySummary.absent} hint={`${dailySummary.present} present`} />
               <Kpi tone="yellow" icon={TrendingUp} label="Group progress" value={`${dailySummary.progress}%`} hint={dailySummary.assigned ? 'today' : 'write a task first'} />
             </section>
@@ -421,7 +579,7 @@ export default function Home() {
                       <span className="eyebrow">STUDENT CHECK</span>
                       <h2>Who did the homework?</h2>
                       <p className="section-subtitle">
-                        Green = done · red/blank = not done · Present/Absent can be clicked again to clear.
+                        Gray/red = not done · yellow = partial · green = done. Click to cycle: Partial → Done → Not done.
                       </p>
                     </div>
                     <label className="search">
@@ -490,17 +648,17 @@ export default function Home() {
 
                                 {MODULES.map(m => {
                                   const label = String(state.taskLabels?.[controlGroup]?.[selectedDate]?.[m.key] || '').trim();
-                                  const on = !!rec.modules?.[m.key];
+                                  const status = taskState(rec.modules?.[m.key]);
                                   return (
                                     <td key={m.key} className="homework-cell">
                                       <button
                                         disabled={!label}
-                                        className={`${on ? 'task-check done' : 'task-check'} ${!label ? 'disabled' : ''}`}
+                                        className={`task-check ${status} ${!label ? 'disabled' : ''}`}
                                         onClick={() => label && toggleModule(s.id, selectedDate, m.key)}
-                                        aria-label={`${label || 'No task'} ${on ? 'done' : 'not done'}`}
-                                        title={label || 'Write the homework first'}
+                                        aria-label={`${label || 'No task'} ${status}`}
+                                        title={label ? `${label} — ${status === 'partial' ? 'Partial' : status === 'done' ? 'Done' : 'Not done'}` : 'Write the homework first'}
                                       >
-                                        {on ? <Check size={17}/> : <Minus size={17}/>} 
+                                        {status === 'done' ? <Check size={17}/> : status === 'partial' ? <span className="partial-mark">◐</span> : <Minus size={17}/>} 
                                       </button>
                                     </td>
                                   );
@@ -583,7 +741,7 @@ export default function Home() {
                     </p>
                   </div>
                   <div className="progress-badge">
-                    <TrendingUp size={16}/><b>{stats.submitted}%</b><span>assigned tasks only</span>
+                    <TrendingUp size={16}/><b>{stats.submitted}%</b><span>partial = 50%</span>
                   </div>
                 </div>
                 <ProgressChart data={dailyChart}/>
@@ -611,8 +769,6 @@ export default function Home() {
               </div>
             </section>
           </>
-        ) : (
-          <LeaderboardPage students={state.students || []}/>
         )}
       </section>
 
@@ -687,6 +843,44 @@ function ProgressChart({data}) {
         {data.map(d => <span key={d.date} className={d.rest ? 'rest-label' : ''}>{d.label.replace(' Sep','')}</span>)}
       </div>
     </div>
+  );
+}
+
+function BlackListPage({items}) {
+  return (
+    <section className="blacklist-page">
+      <div className="blacklist-hero">
+        <div>
+          <span className="eyebrow">AUTOMATIC WATCH LIST</span>
+          <h2>Black list</h2>
+          <p>Students appear here after 2 consecutive lesson days with partial or incomplete homework. A fully completed next lesson clears the streak automatically.</p>
+        </div>
+        <div className="blacklist-total"><AlertTriangle size={22}/><strong>{items.length}</strong><span>students</span></div>
+      </div>
+
+      <div className="panel blacklist-panel">
+        {items.length === 0 ? (
+          <div className="blacklist-clear"><Check size={30}/><b>No students on the black list</b><span>Everyone is currently clear.</span></div>
+        ) : (
+          <div className="blacklist-list">
+            {items.map(({student, streak, days}, index) => (
+              <div className="blacklist-row" key={student.id}>
+                <span className="blacklist-rank">{index + 1}</span>
+                <div className="avatar">{student.name.slice(0,1).toUpperCase()}</div>
+                <div className="blacklist-student">
+                  <b>{student.name}</b>
+                  <span>{student.group}</span>
+                </div>
+                <div className="blacklist-days">
+                  {days.map(day => <span key={day.date}>{day.label}</span>)}
+                </div>
+                <div className="blacklist-streak"><b>{streak} days</b><span>incomplete streak</span></div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -775,7 +969,7 @@ function LiveCounter({label, value, setValue}) {
 
 function AddModal({groups, onClose, onAdd}) {
   const [name, setName] = useState('');
-  const [group, setGroup] = useState(groups[0] || 'IELTS');
+  const [group, setGroup] = useState(groups[0] || '');
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <div className="modal" onMouseDown={e => e.stopPropagation()}>
