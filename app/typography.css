@@ -1,0 +1,75 @@
+/* Typography-only layer: matches ARK IELTS Poppins and improves readability. */
+html,body,button,input,select{font-family:var(--font-poppins),ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{font-size:15px;line-height:1.5}
+
+.brand b{font-size:17px}
+.brand span{font-size:10.5px}
+.sidebar nav button{font-size:13.5px}
+.sidebar-note b{font-size:12.5px}
+.sidebar-note span{font-size:10.5px}
+
+.eyebrow{font-size:11px}
+.topbar h1{font-size:32px;line-height:1.2}
+.topbar p{font-size:14px;line-height:1.55}
+.primary,.view-all{font-size:13px}
+
+.toolbar-title h2{font-size:20px;line-height:1.3}
+.toolbar-title p{font-size:13px;line-height:1.5}
+.select-wrap select,.search input{font-size:13px}
+
+.kpi span{font-size:11.5px}
+.kpi strong{font-size:29px}
+.kpi small{font-size:11px;line-height:1.45}
+
+.setup-head h2{font-size:20px}
+.date-chip{font-size:12px}
+.topic-field label,.homework-field label{font-size:11.5px}
+.topic-field input,.homework-field input{font-size:14px}
+
+.panel-head h2{font-size:19px;line-height:1.35}
+.section-subtitle{font-size:12px;line-height:1.5}
+
+th,td{font-size:12.5px}
+.row-number{font-size:11px}
+.student-name b{font-size:13px}
+.student-name small{font-size:10.5px}
+.attendance-buttons button{font-size:11px}
+.task-number{font-size:10px}
+.task-title{font-size:11.5px}
+.pts-control strong{font-size:12px}
+
+.rest-day b{font-size:14px}
+.rest-day span{font-size:12px}
+.calendar-grid button b{font-size:10.5px}
+.calendar-grid button span{font-size:9px}
+.live-counter b{font-size:12.5px}
+.live-counter span{font-size:10px}
+.muted{font-size:10px}
+
+.results-value{font-size:38px}
+.results-copy{font-size:11.5px;line-height:1.5}
+.progress-badge b{font-size:13px}
+.progress-badge span{font-size:9px}
+.chart-y{font-size:9.5px}
+.chart-x{font-size:8.5px}
+
+.podium-card b{font-size:13px}
+.podium-card small{font-size:10px}
+.podium-card strong{font-size:12px}
+.leader-row b{font-size:12.5px}
+.leader-row small{font-size:10px}
+.leader-row strong{font-size:12px}
+
+.ranking-head,.ranking-row{font-size:12.5px}
+.ranking-row .participant b{font-size:13px}
+.group-tag{font-size:10.5px}
+
+.modal label{font-size:12px}
+.modal input,.modal select{font-size:14px}
+.modal-head h2{font-size:20px}
+
+@media (max-width:900px){
+  .topbar h1{font-size:28px}
+  .toolbar-title h2,.setup-head h2{font-size:18px}
+  th,td{font-size:12px}
+}
