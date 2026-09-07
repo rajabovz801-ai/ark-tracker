@@ -12,9 +12,9 @@
     ['2026-09-22','22 Sep',false],['2026-09-23','23 Sep',false],['2026-09-24','24 Sep',false],
     ['2026-09-25','25 Sep',false],['2026-09-26','26 Sep',false]
   ];
-  const LABEL_TO_DATE = Object.fromEntries(DAY_PLAN.map(([date,label]) => [label, date]));
 
   let lastRaw = '';
+  let lastHeading = '';
 
   function readState() {
     try { return JSON.parse(localStorage.getItem(STATE_KEY) || '{}') || {}; }
@@ -279,8 +279,12 @@
     enableCalendarTopicFocus();
     const raw = localStorage.getItem(STATE_KEY) || '';
     const heading = document.querySelector('.content > .topbar h1')?.textContent?.trim() || '';
-    if (force || raw !== lastRaw || heading === 'Overall Dashboard') {
+    const panelMissing = heading === 'Overall Dashboard' && !document.querySelector('.overall-analysis');
+    const headingChanged = heading !== lastHeading;
+
+    if (force || raw !== lastRaw || headingChanged || panelMissing) {
       lastRaw = raw;
+      lastHeading = heading;
       renderOverallAnalysis();
     }
   }
