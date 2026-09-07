@@ -37,10 +37,13 @@ const MODULES = [
   { key: 'listening', label: 'Listening', icon: Headphones },
 ];
 
+const GROUPS = ['IELTS', 'CEFR', '404'];
+
 const seed = {
   students: [],
   records: {},
-  liveLessons: { IELTS: 0, CEFR: 0 },
+  taskLabels: {},
+  liveLessons: { IELTS: 0, CEFR: 0, '404': 0 },
 };
 
 function loadState() {
@@ -67,7 +70,7 @@ export default function Home() {
   useEffect(() => { if (ready) localStorage.setItem('ark-tracker-v1', JSON.stringify(state)); }, [state, ready]);
 
   useEffect(() => {
-    if (tab === 'IELTS' || tab === 'CEFR') setControlGroup(tab);
+    if (GROUPS.includes(tab)) setControlGroup(tab);
   }, [tab]);
 
   const scoped = useMemo(() => {
@@ -76,7 +79,7 @@ export default function Home() {
   }, [state.students, controlGroup, query]);
 
   const stats = useMemo(() => {
-    const list = (tab === 'IELTS' || tab === 'CEFR') ? state.students.filter(s => s.group === tab) : state.students;
+    const list = GROUPS.includes(tab) ? state.students.filter(s => s.group === tab) : state.students;
     let present = 0, absent = 0, pts = 0, submitted = 0, totalTasks = 0;
     list.forEach(s => {
       pts += s.pts || 0;
@@ -95,12 +98,12 @@ export default function Home() {
   }, [state, tab]);
 
   const leaderboard = useMemo(() => {
-    const list = (tab === 'IELTS' || tab === 'CEFR') ? state.students.filter(s => s.group === tab) : state.students;
+    const list = GROUPS.includes(tab) ? state.students.filter(s => s.group === tab) : state.students;
     return [...list].sort((a,b) => (b.pts||0)-(a.pts||0)).slice(0, 8);
   }, [state.students, tab]);
 
   const dailyChart = useMemo(() => DAY_PLAN.map(d => {
-    const list = (tab === 'IELTS' || tab === 'CEFR') ? state.students.filter(s => s.group === tab) : state.students;
+    const list = GROUPS.includes(tab) ? state.students.filter(s => s.group === tab) : state.students;
     if (d.rest) return { ...d, value: null, done: 0, possible: 0 };
     let done = 0, possible = list.length * 4;
     list.forEach(s => MODULES.forEach(m => { if (state.records?.[s.id]?.[d.date]?.modules?.[m.key]) done++; }));
@@ -160,12 +163,38 @@ export default function Home() {
     }
   }));
 
+  const setTaskLabel = (group, date, key, value) => setState(p => ({
+    ...p,
+    taskLabels: {
+      ...(p.taskLabels || {}),
+      [group]: {
+        ...(p.taskLabels?.[group] || {}),
+        [date]: {
+          ...(p.taskLabels?.[group]?.[date] || {}),
+          [key]: value
+        }
+      }
+    }
+  }));
+
   const addPts = (id, delta) => setState(p => ({
     ...p,
     students: p.students.map(s => s.id === id ? { ...s, pts: Math.max(0, (s.pts||0) + delta) } : s)
   }));
 
   const dateInfo = DAY_PLAN.find(d => d.date === selectedDate);
+  const taskInputStyle = {
+    width: 130,
+    maxWidth: '100%',
+    border: '1px solid #394550',
+    outline: 0,
+    background: '#18202a',
+    color: '#eef2f5',
+    borderRadius: 9,
+    padding: '8px 9px',
+    fontSize: 10,
+    fontWeight: 750,
+  };
 
   return (
     <main className="app-shell">
@@ -175,6 +204,7 @@ export default function Home() {
           <button className={tab==='Overall'?'active':''} onClick={()=>setTab('Overall')}><LayoutDashboard size={18}/> Overall</button>
           <button className={tab==='IELTS'?'active':''} onClick={()=>setTab('IELTS')}><ShieldCheck size={18}/> IELTS</button>
           <button className={tab==='CEFR'?'active':''} onClick={()=>setTab('CEFR')}><BookOpen size={18}/> CEFR</button>
+          <button className={tab==='404'?'active':''} onClick={()=>setTab('404')}><Users size={18}/> 404</button>
           <button className={tab==='Leaderboard'?'active':''} onClick={()=>setTab('Leaderboard')}><Trophy size={18}/> Leaderboard</button>
         </nav>
         <div className="sidebar-note">
@@ -185,7 +215,7 @@ export default function Home() {
 
       <section className="content">
         <header className="topbar">
-          <div><span className="eyebrow">ARK EDUCATION</span><h1>{tab === 'Leaderboard' ? 'Leaderboard' : `${tab} Dashboard`}</h1><p>IELTS & CEFR learning progress, attendance and PTS.</p></div>
+          <div><span className="eyebrow">ARK EDUCATION</span><h1>{tab === 'Leaderboard' ? 'Leaderboard' : `${tab} Dashboard`}</h1><p>Learning progress, attendance and PTS.</p></div>
           <button className="primary" onClick={()=>setShowAdd(true)}><CirclePlus size={18}/> Add student</button>
         </header>
 
@@ -193,7 +223,7 @@ export default function Home() {
         <section className="kpis">
           <Kpi tone="blue" icon={Users} label="Students" value={stats.students} hint="active roster" />
           <Kpi tone="green" icon={UserCheck} label="Attendance" value={`${stats.present}/${stats.present+stats.absent}`} hint={`${stats.absent} absent`} />
-          <Kpi tone="purple" icon={TrendingUp} label="Task progress" value={`${stats.submitted}%`} hint="Speaking · Writing · Reading · Listening" />
+          <Kpi tone="purple" icon={TrendingUp} label="Task progress" value={`${stats.submitted}%`} hint="daily assigned tasks" />
           <Kpi tone="gold" icon={Coins} label="Total PTS" value={stats.pts} hint="all earned points" />
         </section>
 
@@ -219,26 +249,26 @@ export default function Home() {
             <div><span className="eyebrow">DAILY CONTROL</span><h2>Attendance & lesson analysis</h2><p className="section-subtitle">Showing <b>{controlGroup}</b> students only · switch group from the dropdown</p></div>
             <div className="controls">
               <label className="search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={`Search ${controlGroup} student`}/></label>
-              <label className="select-wrap group-filter"><Users size={16}/><select value={controlGroup} onChange={e=>setControlGroup(e.target.value)}><option value="IELTS">IELTS group</option><option value="CEFR">CEFR group</option></select><ChevronDown size={14}/></label>
+              <label className="select-wrap group-filter"><Users size={16}/><select value={controlGroup} onChange={e=>setControlGroup(e.target.value)}><option value="IELTS">IELTS group</option><option value="CEFR">CEFR group</option><option value="404">404 group</option></select><ChevronDown size={14}/></label>
               <label className="select-wrap"><CalendarDays size={16}/><select value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}>{DAY_PLAN.map(d=><option key={d.date} value={d.date}>{d.label} · {d.day}{d.rest?' · No lesson':''}</option>)}</select><ChevronDown size={14}/></label>
             </div>
           </div>
 
           {dateInfo?.rest ? (
             <div className="rest-day"><CalendarDays size={26}/><div><b>{dateInfo.label} — Sunday</b><span>No lesson. Attendance and task analysis are disabled.</span></div></div>
-          ) : scoped.length === 0 ? <Empty text="No students in this group yet. Add students and choose IELTS or CEFR."/> : (
-            <div className="table-wrap"><table><thead><tr><th>Student</th><th>Group</th><th>Attendance</th>{MODULES.map(m=><th key={m.key}>{m.label}</th>)}<th>PTS</th><th></th></tr></thead><tbody>
+          ) : scoped.length === 0 ? <Empty text="No students in this group yet. Add students and choose a group."/> : (
+            <div className="table-wrap"><table><thead><tr><th>Student</th><th>Group</th><th>Attendance</th>{MODULES.map(m=><th key={m.key}><input aria-label={`Task ${m.key}`} style={taskInputStyle} value={state.taskLabels?.[controlGroup]?.[selectedDate]?.[m.key] || ''} onChange={e=>setTaskLabel(controlGroup,selectedDate,m.key,e.target.value)} placeholder="Vazifani yozing" /></th>)}<th>PTS</th><th></th></tr></thead><tbody>
               {scoped.map(s=>{
                 const rec = state.records?.[s.id]?.[selectedDate] || {};
-                return <tr key={s.id}><td><div className="student-cell"><div className="avatar">{s.name.slice(0,1).toUpperCase()}</div><b>{s.name}</b></div></td><td><span className={`group-tag ${s.group.toLowerCase()}`}>{s.group}</span></td><td><div className="attendance-buttons"><button className={rec.attendance==='present'?'present on':'present'} onClick={()=>setAttendance(s.id,selectedDate,'present')}><Check size={15}/> Present</button><button className={rec.attendance==='absent'?'absent on':'absent'} onClick={()=>setAttendance(s.id,selectedDate,'absent')}><X size={15}/> Absent</button></div></td>{MODULES.map(m=>{const Icon=m.icon; const on=!!rec.modules?.[m.key]; return <td key={m.key}><button className={on?'task-check done':'task-check'} onClick={()=>toggleModule(s.id,selectedDate,m.key)}><Icon size={15}/>{on?<Check size={14}/>:<Minus size={14}/>}</button></td>})}<td><div className="pts-control"><button onClick={()=>addPts(s.id,-1)}><Minus size={14}/></button><strong>{s.pts||0}</strong><button onClick={()=>addPts(s.id,1)}><Plus size={14}/></button></div></td><td><button className="icon-danger" onClick={()=>removeStudent(s.id)} title="Delete"><Trash2 size={16}/></button></td></tr>
+                return <tr key={s.id}><td><div className="student-cell"><div className="avatar">{s.name.slice(0,1).toUpperCase()}</div><b>{s.name}</b></div></td><td><span className={`group-tag ${s.group.toLowerCase()}`}>{s.group}</span></td><td><div className="attendance-buttons"><button className={rec.attendance==='present'?'present on':'present'} onClick={()=>setAttendance(s.id,selectedDate,'present')}><Check size={15}/> Present</button><button className={rec.attendance==='absent'?'absent on':'absent'} onClick={()=>setAttendance(s.id,selectedDate,'absent')}><X size={15}/> Absent</button></div></td>{MODULES.map(m=>{const on=!!rec.modules?.[m.key]; return <td key={m.key}><button className={on?'task-check done':'task-check'} onClick={()=>toggleModule(s.id,selectedDate,m.key)} aria-label={`${state.taskLabels?.[controlGroup]?.[selectedDate]?.[m.key] || 'Task'} ${on?'done':'not done'}`}>{on?<Check size={16}/>:<Minus size={16}/>}</button></td>})}<td><div className="pts-control"><button onClick={()=>addPts(s.id,-1)}><Minus size={14}/></button><strong>{s.pts||0}</strong><button onClick={()=>addPts(s.id,1)}><Plus size={14}/></button></div></td><td><button className="icon-danger" onClick={()=>removeStudent(s.id)} title="Delete"><Trash2 size={16}/></button></td></tr>
               })}
             </tbody></table></div>
           )}
         </section>}
 
         {tab !== 'Leaderboard' && <section className="schedule-grid">
-          <div className="panel schedule-panel"><div className="panel-head"><div><span className="eyebrow">20-DAY PLAN</span><h2>Lesson calendar</h2></div></div><div className="calendar-grid">{DAY_PLAN.map(d=><button key={d.date} onClick={()=>setSelectedDate(d.date)} className={`${d.rest?'rest':''} ${selectedDate===d.date?'selected':''}`}><b>{d.label}</b><span>{d.rest?'No lesson':'S · W · R · L'}</span></button>)}</div></div>
-          <div className="panel live-panel"><div className="panel-head"><div><span className="eyebrow">LIVE LESSONS</span><h2>Weekly counters</h2></div><Settings2 size={20}/></div><LiveCounter label="IELTS" value={state.liveLessons?.IELTS||0} setValue={(v)=>setState(p=>({...p,liveLessons:{...p.liveLessons,IELTS:v}}))}/><LiveCounter label="CEFR" value={state.liveLessons?.CEFR||0} setValue={(v)=>setState(p=>({...p,liveLessons:{...p.liveLessons,CEFR:v}}))}/><p className="muted">Set how many live lessons each group has per week. This is saved in your browser.</p></div>
+          <div className="panel schedule-panel"><div className="panel-head"><div><span className="eyebrow">20-DAY PLAN</span><h2>Lesson calendar</h2></div></div><div className="calendar-grid">{DAY_PLAN.map(d=><button key={d.date} onClick={()=>setSelectedDate(d.date)} className={`${d.rest?'rest':''} ${selectedDate===d.date?'selected':''}`}><b>{d.label}</b><span>{d.rest?'No lesson':'Daily tasks'}</span></button>)}</div></div>
+          <div className="panel live-panel"><div className="panel-head"><div><span className="eyebrow">LIVE LESSONS</span><h2>Weekly counters</h2></div><Settings2 size={20}/></div><LiveCounter label="IELTS" value={state.liveLessons?.IELTS||0} setValue={(v)=>setState(p=>({...p,liveLessons:{...p.liveLessons,IELTS:v}}))}/><LiveCounter label="CEFR" value={state.liveLessons?.CEFR||0} setValue={(v)=>setState(p=>({...p,liveLessons:{...p.liveLessons,CEFR:v}}))}/><LiveCounter label="404" value={state.liveLessons?.['404']||0} setValue={(v)=>setState(p=>({...p,liveLessons:{...p.liveLessons,'404':v}}))}/><p className="muted">Set how many live lessons each group has per week. This is saved in your browser.</p></div>
         </section>}
       </section>
 
@@ -265,4 +295,4 @@ function LeaderboardPage({students}) { const list=[...students].sort((a,b)=>(b.p
 
 function Empty({text}) { return <div className="empty"><Users size={30}/><b>Nothing here yet</b><span>{text}</span></div> }
 function LiveCounter({label,value,setValue}) { return <div className="live-counter"><div><b>{label}</b><span>live lessons / week</span></div><div className="pts-control"><button onClick={()=>setValue(Math.max(0,value-1))}><Minus size={14}/></button><strong>{value}</strong><button onClick={()=>setValue(value+1)}><Plus size={14}/></button></div></div> }
-function AddModal({onClose,onAdd}) { const [name,setName]=useState(''); const [group,setGroup]=useState('IELTS'); return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={e=>e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">NEW STUDENT</span><h2>Add to tracker</h2></div><button onClick={onClose}><X size={18}/></button></div><label>Student name<input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Muhammadali Karimov" onKeyDown={e=>{if(e.key==='Enter') onAdd(name,group)}}/></label><label>Group<select value={group} onChange={e=>setGroup(e.target.value)}><option>IELTS</option><option>CEFR</option></select></label><button className="primary full" onClick={()=>onAdd(name,group)}><Save size={17}/> Save student</button></div></div> }
+function AddModal({onClose,onAdd}) { const [name,setName]=useState(''); const [group,setGroup]=useState('IELTS'); return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={e=>e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">NEW STUDENT</span><h2>Add to tracker</h2></div><button onClick={onClose}><X size={18}/></button></div><label>Student name<input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Muhammadali Karimov" onKeyDown={e=>{if(e.key==='Enter') onAdd(name,group)}}/></label><label>Group<select value={group} onChange={e=>setGroup(e.target.value)}><option>IELTS</option><option>CEFR</option><option>404</option></select></label><button className="primary full" onClick={()=>onAdd(name,group)}><Save size={17}/> Save student</button></div></div> }
