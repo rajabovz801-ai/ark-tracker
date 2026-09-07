@@ -25,6 +25,12 @@
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
   }
 
+  function taskScore(value) {
+    if (value === true || value === 'done') return 1;
+    if (value === 'partial') return 0.5;
+    return 0;
+  }
+
   function deletedSet(state) {
     return new Set(Array.isArray(state.deletedGroups) ? state.deletedGroups : []);
   }
@@ -53,7 +59,7 @@
         Object.keys(labels).forEach(key => {
           if (!String(labels[key] || '').trim()) return;
           possible++;
-          if (rec.modules?.[key]) done++;
+          done += taskScore(rec.modules?.[key]);
         });
       });
     });
@@ -104,7 +110,6 @@
       .delete-group-btn:hover{background:#fff4f6!important;border-color:#edc3cc!important}
       .delete-group-modal-note{margin:9px 0 0;padding:10px 11px;border-radius:9px;background:#fff5e7;color:#8a6324;font-size:10px;line-height:1.5}
       .delete-group-danger{background:#d9425f!important;border-color:#d9425f!important;color:#fff!important}
-      .delete-group-danger:disabled{opacity:.45;cursor:not-allowed}
       .topic-focus-flash{animation:topicFocusFlash .85s ease}
       @keyframes topicFocusFlash{0%{box-shadow:0 0 0 0 rgba(255,210,31,.65)}45%{box-shadow:0 0 0 5px rgba(255,210,31,.24);border-color:#e1bc1e}100%{box-shadow:0 0 0 0 rgba(255,210,31,0)}}
       @media(max-width:1050px){.overall-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -154,13 +159,13 @@
         <div class="overall-summary-card"><span>Total students</span><strong>${totalStudents}</strong><small>across all groups</small></div>
         <div class="overall-summary-card"><span>Active groups</span><strong>${activeGroups}</strong><small>${metrics.length} groups in tracker</small></div>
         <div class="overall-summary-card best"><span>Best group</span><strong>${best ? escapeHtml(best.group) : 'No data yet'}</strong><small>${best ? `${best.progress}% homework submitted` : 'assign homework to compare'}</small></div>
-        <div class="overall-summary-card"><span>Overall submitted</span><strong>${overallProgress}%</strong><small>assigned tasks only</small></div>
+        <div class="overall-summary-card"><span>Overall submitted</span><strong>${overallProgress}%</strong><small>partial counts as 50%</small></div>
       </div>
       <div class="overall-bars">
         ${metrics.length ? metrics.map(m => `
           <div class="overall-bar-row ${best && m.group === best.group ? 'best-row' : ''}">
             <div class="overall-bar-name"><b>${escapeHtml(m.group)}</b><span>${m.students} student${m.students === 1 ? '' : 's'}</span></div>
-            <div class="overall-bar-track" title="${m.done}/${m.possible} submitted"><div class="overall-bar-fill" style="width:${Math.max(0, Math.min(100, m.progress))}%"></div></div>
+            <div class="overall-bar-track" title="${m.progress}% submitted"><div class="overall-bar-fill" style="width:${Math.max(0, Math.min(100, m.progress))}%"></div></div>
             <div class="overall-bar-value">${m.possible ? `${m.progress}%` : '—'}</div>
           </div>
         `).join('') : '<div class="overall-empty">Add groups and students to see the analysis.</div>'}
@@ -175,9 +180,7 @@
   function ensureDeleteButton() {
     const actions = document.querySelector('.top-actions');
     const addGroup = actions?.querySelector('.add-group-btn');
-    if (!actions || !addGroup) return;
-    if (actions.querySelector('.delete-group-btn')) return;
-
+    if (!actions || !addGroup || actions.querySelector('.delete-group-btn')) return;
     const btn = document.createElement('button');
     btn.className = 'view-all delete-group-btn';
     btn.type = 'button';
@@ -190,7 +193,6 @@
     document.querySelector('.delete-group-enhancement-modal')?.remove();
     const state = readState();
     const existingGroups = groupsOf(state);
-
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop delete-group-enhancement-modal';
     backdrop.innerHTML = `
@@ -228,7 +230,6 @@
       if (!window.confirm(message)) return;
       deleteGroup(group);
     });
-
     document.body.appendChild(backdrop);
   }
 
@@ -267,31 +268,9 @@
     const state = readState();
     const deleted = deletedSet(state);
     if (!deleted.size) return;
-
     document.querySelectorAll('.sidebar nav button').forEach(btn => {
-      const name = btn.textContent.trim();
+      const name = btn.textContent.trim().replace(/\s+\d+$/, '');
       if (deleted.has(name)) btn.style.display = 'none';
-    });
-
-    const groupSelect = document.querySelector('.group-filter select');
-    if (groupSelect) {
-      [...groupSelect.options].forEach(option => {
-        if (deleted.has(option.value)) option.remove();
-      });
-      if (deleted.has(groupSelect.value) && groupSelect.options.length) {
-        groupSelect.value = groupSelect.options[0].value;
-        groupSelect.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    }
-
-    document.querySelectorAll('.modal-backdrop:not(.delete-group-enhancement-modal) select').forEach(select => {
-      [...select.options].forEach(option => {
-        if (deleted.has(option.value)) option.remove();
-      });
-      if (deleted.has(select.value) && select.options.length) {
-        select.value = select.options[0].value;
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-      }
     });
   }
 
@@ -322,7 +301,6 @@
     const heading = document.querySelector('.content > .topbar h1')?.textContent?.trim() || '';
     const panelMissing = heading === 'Overall Dashboard' && !document.querySelector('.overall-analysis');
     const headingChanged = heading !== lastHeading;
-
     if (force || raw !== lastRaw || headingChanged || panelMissing) {
       lastRaw = raw;
       lastHeading = heading;
