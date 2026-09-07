@@ -1,0 +1,43 @@
+.top-actions{flex-wrap:wrap}
+.nav-count{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#2a2d33;color:#ffd21f;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800}
+.sidebar nav button.active .nav-count{background:#171717;color:#ffd21f}
+
+.daily-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+.today-btn{height:42px;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+
+.task-check.partial{background:#ffd21f;border-color:#e8bd12;color:#4d4108;box-shadow:0 5px 12px rgba(255,210,31,.22)}
+.task-check.notdone{background:#fff1f3;border-color:#f2c9d1;color:#d64d67}
+.partial-mark{font-size:18px;font-weight:900;line-height:1}
+
+.blacklist-page{display:grid;gap:14px}
+.blacklist-hero{border-radius:16px;padding:22px 24px;background:#17191d;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.blacklist-hero h2{font-size:24px;margin:4px 0 6px}
+.blacklist-hero p{max-width:760px;margin:0;color:#aeb3bb;font-size:12px;line-height:1.65}
+.blacklist-total{min-width:110px;border:1px solid #33373d;background:#22252a;border-radius:14px;padding:13px 15px;display:grid;grid-template-columns:auto auto;gap:1px 8px;align-items:center;color:#ffd21f}
+.blacklist-total strong{font-size:24px;line-height:1}
+.blacklist-total span{grid-column:2;color:#aeb3bb;font-size:10px}
+.blacklist-panel{padding:0;overflow:hidden}
+.blacklist-list{display:grid}
+.blacklist-row{display:grid;grid-template-columns:42px 38px minmax(180px,1.2fr) minmax(150px,.8fr) minmax(150px,.7fr);gap:12px;align-items:center;padding:14px 16px;border-top:1px solid #eceef1}
+.blacklist-row:first-child{border-top:0}
+.blacklist-row:hover{background:#fffafb}
+.blacklist-rank{width:28px;height:28px;border-radius:8px;background:#fff0f3;color:#c94660;display:grid;place-items:center;font-size:11px;font-weight:900}
+.blacklist-student b,.blacklist-student span,.blacklist-streak b,.blacklist-streak span{display:block}
+.blacklist-student b{font-size:13px;color:#282c31}
+.blacklist-student span{font-size:10px;color:#999fa7;margin-top:2px}
+.blacklist-days{display:flex;gap:6px;flex-wrap:wrap}
+.blacklist-days span{padding:5px 8px;border-radius:7px;background:#fff3d1;color:#8d6b00;font-size:10px;font-weight:800;border:1px solid #f2dea1}
+.blacklist-streak{text-align:right}
+.blacklist-streak b{font-size:13px;color:#ce4962}
+.blacklist-streak span{font-size:9px;color:#a0a5ad;margin-top:2px}
+.blacklist-clear{min-height:220px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;color:#4cac72}
+.blacklist-clear b{font-size:14px;color:#50555c}
+.blacklist-clear span{font-size:11px;color:#9ca2aa}
+
+@media(max-width:1250px){.daily-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:800px){
+  .blacklist-hero{align-items:flex-start;flex-direction:column}
+  .blacklist-row{grid-template-columns:34px 34px 1fr}
+  .blacklist-days,.blacklist-streak{grid-column:3;text-align:left}
+}
+@media(max-width:700px){.daily-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.top-actions{gap:6px}.top-actions .view-all,.top-actions .primary{font-size:11px}}
