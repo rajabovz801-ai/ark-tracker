@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Clock3, LogIn, LogOut, RefreshCw, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import AccessCenter from './AccessCenter';
-import { AccountantPortal, ShopManagerPortal, StudentPortal } from './RolePortals';
+import { AccountantPortal, ShopManagerPortal } from './RolePortals';
+import StudentAppPortal from './StudentAppPortal';
 import { STATE_KEY, clearSession, ensureFreshSession, fetchMyProfile, readSession, signIn, signUp } from './arkAuthClient';
 
 const SCOPE_KEY = 'ark-auth-cache-scope';
@@ -79,7 +80,7 @@ export default function AuthGate({ children }) {
   if (profile.status === 'suspended') return <StatusScreen icon={ShieldCheck} title="Account suspended" text="This account is temporarily blocked. Contact the ARK administrator." action="Check again" onAction={()=>loadIdentity(session)} onLogout={logout}/>;
   if (profile.status === 'rejected') return <StatusScreen icon={ShieldCheck} title="Access not approved" text="This registration has not been approved for ARK Tracker access." action="Check again" onAction={()=>loadIdentity(session)} onLogout={logout}/>;
 
-  if (profile.role === 'student') return <RoleFrame profile={profile} onLogout={logout}><StudentPortal session={session} profile={profile}/></RoleFrame>;
+  if (profile.role === 'student') return <RoleFrame profile={profile} onLogout={logout}><StudentAppPortal session={session} profile={profile}/></RoleFrame>;
   if (profile.role === 'accountant') return <RoleFrame profile={profile} onLogout={logout}><AccountantPortal session={session} profile={profile}/></RoleFrame>;
   if (profile.role === 'shop_manager') return <RoleFrame profile={profile} onLogout={logout}><ShopManagerPortal session={session} profile={profile}/></RoleFrame>;
 
