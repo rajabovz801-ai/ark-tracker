@@ -1,6 +1,8 @@
 import { Poppins } from 'next/font/google';
 import './globals.css';
 import './ark-v2.css';
+import './auth.css';
+import AuthGate from './AuthGate';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -11,16 +13,13 @@ const poppins = Poppins({
 
 export const metadata = {
   title: 'ARK Tracker',
-  description: 'ARK Education management, finance and gamification platform',
+  description: 'ARK Education management, finance, roles and gamification platform',
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={poppins.variable}>
-      <head>
-        <script src="/cloud-sync.js" />
-      </head>
-      <body>{children}</body>
+      <body><AuthGate>{children}</AuthGate></body>
     </html>
   );
 }
