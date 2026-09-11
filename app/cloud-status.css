@@ -1,0 +1,57 @@
+/* Compact sidebar cloud state. Visual-only: keeps sync status without taking sidebar space. */
+.sidebar-note{
+  min-height:34px!important;
+  padding:7px 10px!important;
+  border-radius:10px!important;
+  gap:7px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+}
+.sidebar-note svg{
+  width:15px!important;
+  height:15px!important;
+  flex:0 0 auto!important;
+  color:#f2bf18!important;
+}
+.sidebar-note>div{
+  display:flex!important;
+  align-items:center!important;
+  min-width:0!important;
+}
+.sidebar-note b{
+  font-size:0!important;
+  line-height:1!important;
+  color:#e8edf4!important;
+  white-space:nowrap!important;
+}
+.sidebar-note b::before{
+  content:'●';
+  color:#34c759;
+  font-size:9px;
+  margin-right:6px;
+  vertical-align:1px;
+}
+.sidebar-note b::after{
+  content:'Synced';
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.1px;
+}
+.sidebar-note span{display:none!important}
+
+@media(min-width:981px){
+  .sidebar-note{margin-bottom:88px!important}
+}
+@media(min-width:1181px){
+  .sidebar-note{
+    min-height:38px!important;
+    padding:8px 11px!important;
+    border-radius:10px!important;
+    gap:8px!important;
+    margin-bottom:112px!important;
+  }
+  .sidebar-note svg{width:16px!important;height:16px!important}
+  .sidebar-note b::before{font-size:9px!important;margin-right:6px!important}
+  .sidebar-note b::after{font-size:10.5px!important}
+}
