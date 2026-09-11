@@ -2,6 +2,7 @@ import { Poppins } from 'next/font/google';
 import './globals.css';
 import './ark-v2.css';
 import './auth.css';
+import './shop-polish.css';
 import AuthGate from './AuthGate';
 
 const poppins = Poppins({
