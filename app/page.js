@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import ArkTrackerV2 from './ArkTrackerV2';
 import DashboardEnhancer from './DashboardEnhancer';
 import ReportsEnhancer from './ReportsEnhancer';
+import ReportsNavFix from './ReportsNavFix';
 import StudentLifecycleEnhancer from './StudentLifecycleEnhancer';
 
 export default function Page() {
@@ -15,5 +16,5 @@ export default function Page() {
     return () => window.removeEventListener('ark-tracker-state-updated', refresh);
   }, []);
 
-  return <><ArkTrackerV2 key={`tracker-${revision}`}/><DashboardEnhancer key={`dashboard-${revision}`}/><ReportsEnhancer key={`reports-${revision}`}/><StudentLifecycleEnhancer key={`lifecycle-${revision}`}/></>;
+  return <><ArkTrackerV2 key={`tracker-${revision}`}/><DashboardEnhancer key={`dashboard-${revision}`}/><ReportsEnhancer key={`reports-${revision}`}/><ReportsNavFix key={`reports-nav-${revision}`}/><StudentLifecycleEnhancer key={`lifecycle-${revision}`}/></>;
 }
