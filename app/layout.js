@@ -5,6 +5,7 @@ import './auth.css';
 import './shop-polish.css';
 import './reference-ui.css';
 import './mobile.css';
+import './student-app.css';
 import AuthGate from './AuthGate';
 
 const poppins = Poppins({
