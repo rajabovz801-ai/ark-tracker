@@ -1,0 +1,141 @@
+/* ARK Shop visual refinement — loaded after auth.css so it only sharpens hierarchy. */
+:root{
+  --ark-ink:#17140d;
+  --ark-ink-soft:#494439;
+  --ark-cream:#f3ecd9;
+  --ark-card:#fff9ea;
+  --ark-gold:#e9ba27;
+  --ark-gold-deep:#9b6d00;
+  --ark-border:#dccb9f;
+}
+
+/* Keep the warm ARK palette, but make reading text deliberately darker. */
+html,body{background:var(--ark-cream)!important;color:var(--ark-ink)!important}
+.content{background:var(--ark-cream)!important}
+.topbar{background:rgba(243,236,217,.96)!important}
+.top-title h1,.panel h2,.daily-toolbar h2,.group-card-top h3,.staff-main b,.student-cell b{
+  color:var(--ark-ink)!important;
+}
+.top-title p,.panel-head p,.daily-toolbar p,.subline{
+  color:#625c50!important;
+}
+
+/* Sidebar: dark readable labels, stronger active state. */
+.sidebar nav button{color:#403d35!important;font-weight:650!important}
+.sidebar nav button:hover{color:#111!important;background:rgba(255,255,255,.45)!important}
+.sidebar nav button.active{
+  color:#111!important;
+  background:#efc22f!important;
+  box-shadow:inset 4px 0 #111,0 7px 18px rgba(146,106,8,.13)!important;
+}
+.side-section-label{color:#766a4c!important}
+.sidebar-note b{color:#262219!important}
+
+/* Shop hero: no more white-on-cream. */
+.shop-head{
+  background:linear-gradient(135deg,#f2d86f 0%,#f8e8ad 44%,#fff4d2 100%)!important;
+  color:var(--ark-ink)!important;
+  border:1px solid #d9bc5b!important;
+  box-shadow:0 12px 28px rgba(119,88,11,.10)!important;
+}
+.shop-head h2{
+  color:#111!important;
+  font-size:22px!important;
+  font-weight:800!important;
+  letter-spacing:-.45px!important;
+}
+.shop-head p{color:#514b3e!important;font-size:11px!important;font-weight:500!important}
+.shop-head .eyebrow{color:#765200!important}
+
+/* Make admin controls feel like controls, not background decoration. */
+.shop-add input,.shop-buyer select,.order-row select,
+.manager-add-grid input,.product-edit-row input,.product-name-input{
+  background:#fffdf7!important;
+  border:1.5px solid #d5c08a!important;
+  color:#151515!important;
+}
+.shop-add input::placeholder,.manager-add-grid input::placeholder{color:#8a8172!important}
+.shop-add input:focus,.shop-buyer select:focus,.manager-add-grid input:focus,.product-edit-row input:focus,.product-name-input:focus{
+  outline:none!important;
+  border-color:#c99b16!important;
+  box-shadow:0 0 0 3px rgba(225,179,35,.15)!important;
+}
+.shop-buyer span{color:#312e27!important;font-weight:800!important}
+.shop-buyer select{font-weight:650!important}
+
+/* Product cards: stronger separation + black product names. */
+.shop-grid{gap:14px!important}
+.shop-card{
+  background:#fffaf0!important;
+  border:1px solid #dfd1ab!important;
+  border-radius:16px!important;
+  padding:18px!important;
+  box-shadow:0 5px 16px rgba(79,60,17,.035)!important;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease!important;
+}
+.shop-card:hover{
+  transform:translateY(-2px)!important;
+  border-color:#d2b75d!important;
+  box-shadow:0 10px 24px rgba(79,60,17,.08)!important;
+}
+.shop-icon{
+  width:52px!important;height:52px!important;
+  background:#f4e3a5!important;
+  color:#875f00!important;
+  border:1px solid #ead795!important;
+}
+.shop-card h3{color:#111!important;font-size:13px!important;font-weight:800!important}
+.shop-card>b{color:#8b6200!important;font-size:16px!important;font-weight:800!important}
+.shop-card>span{color:#5d584e!important;font-size:9px!important}
+.shop-card .primary.full{color:#111!important;font-weight:800!important}
+
+/* Orders: dark primary information, quieter metadata. */
+.order-row{background:#fffaf0!important;border-color:#dfd1ab!important}
+.order-row b{color:#17140d!important;font-weight:750!important}
+.order-row span{color:#6a6254!important}
+
+/* Shop Manager: image-first cards remain visually tied to student shop. */
+.shop-manager-add,.manager-product,.student-product{
+  background:#fff9ea!important;
+  border-color:#dfd0a5!important;
+}
+.shop-manager-add h2,.manager-product .product-name-input,.student-product-copy h3{color:#151515!important}
+.product-image,.student-product-image{
+  background:#f1e4bd!important;
+  border:1px solid #e2cf94!important;
+}
+.manager-add-grid label span,.product-edit-row span{color:#4e483d!important}
+.product-name-input{font-weight:750!important}
+
+/* Student shop: obvious wallet/reward hierarchy, no admin-control styling. */
+.student-hero h1,.student-section-head h2{color:#151515!important}
+.student-product-copy h3{font-weight:800!important}
+.student-product-copy b{color:#8c6200!important}
+.student-product-copy span{color:#625c50!important}
+.student-wallet>div{background:#fff9ea!important;border-color:#dfd0a5!important}
+.student-wallet strong{color:#151515!important}
+
+/* Keep yellow CTAs, but use black text for maximum contrast. */
+.primary,.access-button{
+  background:#e9ba27!important;
+  border-color:#d5a719!important;
+  color:#111!important;
+}
+.primary:hover,.access-button:hover{background:#f1c83b!important}
+.ghost{color:#1a1a1a!important}
+
+/* Header tools are secondary; reduce visual weight. */
+.top-actions>.ghost{height:38px!important;padding:0 12px!important;box-shadow:none!important}
+.course-switcher{height:38px!important}
+
+/* Bottom account controls: breathe a little more. */
+.session-dock{right:22px!important;bottom:20px!important;gap:12px!important}
+.access-button{min-width:128px!important;justify-content:center!important}
+.session-user{box-shadow:0 10px 24px rgba(77,57,9,.10)!important}
+
+@media(max-width:680px){
+  .shop-head{padding:18px!important}
+  .shop-head h2{font-size:19px!important}
+  .session-dock{right:10px!important;bottom:78px!important;gap:7px!important}
+  .access-button{min-width:auto!important}
+}
