@@ -1,7 +1,6 @@
 import { Poppins } from 'next/font/google';
 import './globals.css';
-import './typography.css';
-import './final-tools.css';
+import './ark-v2.css';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -12,7 +11,7 @@ const poppins = Poppins({
 
 export const metadata = {
   title: 'ARK Tracker',
-  description: 'IELTS & CEFR student progress tracker',
+  description: 'ARK Education management, finance and gamification platform',
 };
 
 export default function RootLayout({ children }) {
@@ -20,8 +19,6 @@ export default function RootLayout({ children }) {
     <html lang="en" className={poppins.variable}>
       <head>
         <script src="/cloud-sync.js" />
-        <script src="/submitted-bars.js" defer />
-        <script src="/overall-tools.js" defer />
       </head>
       <body>{children}</body>
     </html>
