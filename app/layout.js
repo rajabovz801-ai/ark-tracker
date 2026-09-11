@@ -4,6 +4,7 @@ import './ark-v2.css';
 import './auth.css';
 import './shop-polish.css';
 import './reference-ui.css';
+import './mobile.css';
 import AuthGate from './AuthGate';
 
 const poppins = Poppins({
