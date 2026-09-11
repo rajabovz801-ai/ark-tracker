@@ -52,6 +52,10 @@
 .attention-copy small{font-size:7.5px;color:#9298a2;margin-top:2px}
 .attention-card>strong{font-size:17px;color:#5a6069}
 .attention-card.has-items>strong{color:#9b7600}
+.role-teacher .attention-card:nth-child(2),
+.role-teacher .attention-card:nth-child(3),
+.role-teacher .attention-card:nth-child(4){display:none!important}
+.role-teacher .attention-grid{grid-template-columns:minmax(0,320px)!important}
 
 /* Quick actions no longer need to feel like a large empty block */
 .quick-links{padding:16px!important}
@@ -59,18 +63,18 @@
 .quick-grid{gap:8px!important}
 .quick-card{min-height:92px!important;padding:12px!important}
 
-/* Keep owner controls out of dashboard content on desktop. */
+/* Keep owner/admin/teacher controls out of dashboard content on desktop. */
 @media(min-width:981px){
-  .session-dock{
+  .role-owner .session-dock,.role-admin .session-dock,.role-teacher .session-dock{
     left:12px!important;right:auto!important;bottom:14px!important;width:162px!important;
     flex-direction:column!important;align-items:stretch!important;gap:6px!important;
   }
-  .access-button{width:100%!important;height:38px!important;justify-content:center!important;padding:0 9px!important;font-size:8.5px!important;border-radius:10px!important}
-  .session-user{width:100%!important;box-sizing:border-box!important;padding:6px!important;border-radius:10px!important;box-shadow:none!important}
-  .session-avatar{width:28px!important;height:28px!important;border-radius:8px!important}
-  .session-user b{max-width:82px!important;font-size:8.5px!important}
-  .session-user span{font-size:7px!important}
-  .session-user>button{margin-left:auto!important;width:27px!important;height:27px!important}
+  .role-owner .access-button,.role-admin .access-button,.role-teacher .access-button{width:100%!important;height:38px!important;justify-content:center!important;padding:0 9px!important;font-size:8.5px!important;border-radius:10px!important}
+  .role-owner .session-user,.role-admin .session-user,.role-teacher .session-user{width:100%!important;box-sizing:border-box!important;padding:6px!important;border-radius:10px!important;box-shadow:none!important}
+  .role-owner .session-avatar,.role-admin .session-avatar,.role-teacher .session-avatar{width:28px!important;height:28px!important;border-radius:8px!important}
+  .role-owner .session-user b,.role-admin .session-user b,.role-teacher .session-user b{max-width:82px!important;font-size:8.5px!important}
+  .role-owner .session-user span,.role-admin .session-user span,.role-teacher .session-user span{font-size:7px!important}
+  .role-owner .session-user>button,.role-admin .session-user>button,.role-teacher .session-user>button{margin-left:auto!important;width:27px!important;height:27px!important}
   .sidebar-note{margin-bottom:86px!important}
 }
 
