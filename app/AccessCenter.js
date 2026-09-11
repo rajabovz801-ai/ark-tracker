@@ -17,6 +17,11 @@ function readTracker() {
   catch { return {}; }
 }
 
+function writeTracker(next) {
+  localStorage.setItem(STATE_KEY, JSON.stringify(next));
+  window.dispatchEvent(new CustomEvent('ark-tracker-state-updated', { detail: { source: 'access-center' } }));
+}
+
 export default function AccessCenter({ session, open, onClose, onCount }) {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -51,22 +56,44 @@ export default function AccessCenter({ session, open, onClose, onCount }) {
   };
   const patchDraft = (id, patch) => setDrafts(p => ({ ...p, [id]: { ...(draftFor(profiles.find(x => x.user_id === id) || {})), ...p[id], ...patch } }));
 
-  const syncStaff = (profile, draft) => {
-    if (!['admin','teacher','accountant','shop_manager'].includes(draft.role)) return;
+  const setStaffActive = (profile, activeValue) => {
     const raw = readTracker();
     const staff = Array.isArray(raw.staff) ? raw.staff : [];
     const id = `auth-${profile.user_id}`;
+    let changed = false;
+    const merged = staff.map(s => {
+      if (s.id !== id && s.authUserId !== profile.user_id) return s;
+      changed = true;
+      return { ...s, active: activeValue };
+    });
+    if (changed) writeTracker({ ...raw, staff: merged });
+  };
+
+  const syncStaff = (profile, draft) => {
+    const staffRoles = ['admin','teacher','accountant','shop_manager'];
+    const raw = readTracker();
+    const staff = Array.isArray(raw.staff) ? raw.staff : [];
+    const id = `auth-${profile.user_id}`;
+
+    if (!staffRoles.includes(draft.role)) {
+      const merged = staff.map(s => (s.id === id || s.authUserId === profile.user_id) ? { ...s, active: false } : s);
+      writeTracker({ ...raw, staff: merged });
+      return;
+    }
+
+    const existing = staff.find(s => s.id === id || s.authUserId === profile.user_id);
     const next = {
+      ...(existing || {}),
       id,
-      name: profile.full_name || profile.email || 'Staff',
+      name: profile.full_name || profile.email || existing?.name || 'Staff',
       role: draft.role,
-      phone: '',
-      courseIds: draft.role === 'teacher' ? [draft.courseId] : (courses.map(c => c.id)),
+      phone: existing?.phone || '',
+      courseIds: draft.role === 'teacher' ? [draft.courseId] : courses.map(c => c.id),
       active: true,
       authUserId: profile.user_id,
     };
-    const merged = [...staff.filter(s => s.id !== id), next];
-    localStorage.setItem(STATE_KEY, JSON.stringify({ ...raw, staff: merged }));
+    const merged = [...staff.filter(s => s.id !== id && s.authUserId !== profile.user_id), next];
+    writeTracker({ ...raw, staff: merged });
   };
 
   const approve = async profile => {
@@ -90,14 +117,22 @@ export default function AccessCenter({ session, open, onClose, onCount }) {
 
   const reject = async profile => {
     setLoading(true); setError('');
-    try { await updateProfile(session, profile.user_id, { role: 'pending', status: 'rejected', course_ids: [], group_names: [], student_id: null }); await load(); }
+    try {
+      await updateProfile(session, profile.user_id, { role: 'pending', status: 'rejected', course_ids: [], group_names: [], student_id: null });
+      setStaffActive(profile, false);
+      await load();
+    }
     catch (e) { setError(e.message || 'Could not reject this account.'); }
     finally { setLoading(false); }
   };
 
   const suspend = async profile => {
     setLoading(true); setError('');
-    try { await updateProfile(session, profile.user_id, { status: 'suspended' }); await load(); }
+    try {
+      await updateProfile(session, profile.user_id, { status: 'suspended' });
+      setStaffActive(profile, false);
+      await load();
+    }
     catch (e) { setError(e.message || 'Could not suspend this account.'); }
     finally { setLoading(false); }
   };
