@@ -1,0 +1,217 @@
+/* ARK Tracker — dark sidebar / light workspace reference theme */
+:root{
+  --bg:#f5f6f8;
+  --panel:#ffffff;
+  --line:#e7e9ee;
+  --gold:#f3c316;
+  --gold-soft:#fff6c9;
+  --navy:#111318;
+  --navy-2:#1d2026;
+  --text:#17191e;
+  --muted:#8a909b;
+  --shadow:0 1px 2px rgba(17,19,24,.03);
+}
+
+html,body{background:#f5f6f8!important;color:#17191e!important}
+
+/* Layout */
+.app-shell{grid-template-columns:186px minmax(0,1fr)!important;background:#f5f6f8!important}
+.sidebar{
+  background:#0f1116!important;
+  color:#fff!important;
+  padding:22px 12px 14px!important;
+  border-right:1px solid #1d2026!important;
+  box-shadow:none!important;
+}
+.content{background:#f5f6f8!important;padding:0 22px 34px!important}
+.topbar{
+  min-height:94px!important;
+  background:rgba(245,246,248,.96)!important;
+  border-bottom:1px solid #e7e9ee!important;
+  margin-bottom:18px!important;
+}
+.top-title h1{color:#111318!important;font-size:24px!important;letter-spacing:-.55px!important}
+.top-title p{color:#8a909b!important}
+.eyebrow{color:#9f7d00!important;letter-spacing:1.45px!important}
+
+/* Brand */
+.brand{padding:2px 6px 22px!important;border-bottom:1px solid #24272e!important;gap:10px!important}
+.brand-mark{
+  width:34px!important;height:34px!important;border-radius:9px!important;
+  background:#fff!important;color:#111318!important;box-shadow:none!important;font-size:17px!important;
+}
+.brand b{color:#fff!important;font-size:15px!important;letter-spacing:2px!important}
+.brand span{color:#7e858f!important;font-size:8px!important;letter-spacing:2px!important}
+.side-section-label{display:none!important}
+.sidebar nav{gap:5px!important;padding-top:16px!important}
+.sidebar nav button{
+  min-height:42px!important;border-radius:9px!important;padding:10px 10px!important;
+  color:#aeb4bd!important;font-size:11px!important;font-weight:600!important;gap:9px!important;
+  position:relative!important;
+}
+.sidebar nav button:hover{background:#191c21!important;color:#fff!important}
+.sidebar nav button.active{
+  background:#24272d!important;color:#fff!important;box-shadow:none!important;
+}
+.sidebar nav button.active:before{
+  content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:#f3c316;
+}
+.sidebar nav button.active svg{color:#f3c316!important}
+.nav-count{background:#f3c316!important;color:#17191e!important;font-weight:800!important}
+.sidebar-note{
+  background:#17191f!important;border:1px solid #262a32!important;color:#f4f5f7!important;
+  border-radius:11px!important;padding:11px!important;
+}
+.sidebar-note span{color:#777f89!important}
+.sidebar-note svg{color:#f3c316!important}
+
+/* Top controls */
+.course-switcher,.select-wrap,.search,.ghost{
+  background:#fff!important;border-color:#e1e4e9!important;box-shadow:none!important;color:#17191e!important;
+}
+.course-switcher select,.select-wrap select{color:#17191e!important}
+.ghost{height:38px!important}
+.primary{
+  background:#f3c316!important;border-color:#e0b300!important;color:#111318!important;
+  box-shadow:none!important;font-weight:800!important;
+}
+.primary:hover{background:#ffd21b!important}
+.text-btn{color:#8a6c00!important}
+
+/* Cards and spacing */
+.page-stack{gap:16px!important}
+.panel,.kpi,.quick-card,.course-card,.staff-card,.shop-card,.podium-card{
+  background:#fff!important;border-color:#e7e9ee!important;box-shadow:none!important;
+}
+.panel{border-radius:12px!important;padding:18px!important}
+.panel-head{margin-bottom:14px!important}
+.panel-head h2,.panel h2{color:#15171c!important}
+.panel-head p{color:#8a909b!important}
+.kpi{border-radius:11px!important;padding:13px!important}
+.kpi-icon,.group-icon,.quick-card>div,.shop-icon{
+  background:#fff6c9!important;color:#9b7900!important;border:1px solid #f2e3a3!important;
+}
+.kpi strong,.quick-card b,.group-card-top h3,.staff-main b{color:#16181d!important}
+.kpi span,.kpi small,.quick-card span{color:#9197a2!important}
+
+/* Feature headers: no dark gradient, screenshot-like white cards */
+.gamification-hero,.shop-head,.leader-hero,.blacklist-hero{
+  background:#fff!important;color:#17191e!important;border:1px solid #e7e9ee!important;
+  border-radius:12px!important;padding:18px!important;box-shadow:none!important;
+  position:relative!important;overflow:hidden!important;
+}
+.gamification-hero:after,.shop-head:after,.leader-hero:after,.blacklist-hero:after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,#f3c316 0 74%,transparent 74%);
+}
+.gamification-hero h2,.shop-head h2,.leader-hero h2,.blacklist-hero h2{color:#15171c!important}
+.gamification-hero p,.shop-head p,.leader-hero p,.blacklist-hero p{color:#949aa4!important}
+.gamification-hero .eyebrow,.shop-head .eyebrow,.leader-hero .eyebrow,.blacklist-hero .eyebrow{color:#8b6d00!important}
+.leader-hero svg{color:#f3c316!important}
+
+/* Tables */
+.table-wrap{border-color:#e8eaee!important;border-radius:10px!important;background:#fff!important}
+.table-wrap table{background:#fff!important}
+.table-wrap th{
+  background:#f3f4f6!important;color:#858b95!important;border-bottom:1px solid #e4e6ea!important;
+  font-size:8px!important;letter-spacing:.45px!important;padding:9px 10px!important;
+}
+.table-wrap td{background:#fff!important;border-bottom:1px solid #eceef1!important;padding:9px 10px!important;color:#31343a!important}
+.table-wrap tbody tr:hover td{background:#fafbfc!important}
+.finance-table .sticky-col{background:#fff!important}
+.finance-table th.sticky-col{background:#f3f4f6!important}
+.student-cell b{color:#15171c!important}
+.student-cell span,.subline{color:#989ea8!important}
+.avatar{background:#f0f2f4!important;color:#555b65!important;border:1px solid #e5e7eb!important}
+
+/* Inputs */
+.field input,.field select,.modal input,.modal select,.reward-form input,.reward-form select,.shop-add input,.shop-buyer select,.order-row select,.year-input,.table-input,.finance-input{
+  background:#fff!important;border-color:#e2e5e9!important;color:#24272d!important;box-shadow:none!important;
+}
+.field input:focus,.field select:focus,.modal input:focus,.modal select:focus,.reward-form input:focus,.reward-form select:focus,.shop-add input:focus,.shop-buyer select:focus{
+  border-color:#d9b600!important;box-shadow:0 0 0 3px rgba(243,195,22,.12)!important;
+}
+
+/* Attendance / task controls */
+.attendance-buttons button,.task-check,.coin-stepper button,.icon-btn,.icon-danger{
+  background:#fff!important;border-color:#e4e7eb!important;color:#7d838d!important;box-shadow:none!important;
+}
+.attendance-buttons .present.on{background:#e9f8ef!important;border-color:#bfe7ce!important;color:#21834d!important}
+.attendance-buttons .absent.on{background:#fff0f0!important;border-color:#efc5c5!important;color:#bc4141!important}
+.task-check.partial{background:#fff8cf!important;border-color:#eedb77!important;color:#9d7900!important}
+.task-check.done{background:#e9f8ef!important;border-color:#bfe7ce!important;color:#21834d!important}
+.task-check.notdone{background:#fff0f0!important;border-color:#efc5c5!important;color:#bc4141!important}
+.coin-stepper strong,.balance-cell b{color:#8f7000!important}
+
+/* Groups, tags, mini rows */
+.group-mini,.transaction-row,.order-row,.live-row,.blacklist-row{border-color:#e9ebef!important;background:#fff!important}
+.tag,.role-badge{background:#f2f3f5!important;color:#444951!important}
+.role-badge.admin{background:#fff2bc!important;color:#755b00!important}
+.course-card.selected{background:#fff9df!important;border-color:#efd46a!important}
+
+/* Shop cards */
+.shop-grid{gap:10px!important}
+.shop-card{border-radius:11px!important;padding:14px!important;text-align:left!important;transition:.16s!important}
+.shop-card:hover{transform:translateY(-2px);border-color:#d9dde3!important;box-shadow:0 8px 22px rgba(17,19,24,.06)!important}
+.shop-card .shop-icon{margin:0 0 12px!important}
+.shop-card h3{color:#15171c!important;font-size:12px!important}
+.shop-card>b{color:#8b6c00!important;font-size:16px!important}
+.shop-card>span{color:#969ca6!important}
+.shop-buyer{border-bottom:1px solid #eceef1!important;padding-bottom:12px!important}
+
+/* Leaderboard */
+.podium-card.rank-1{background:#fffdf2!important;border-color:#efd870!important}
+.podium-avatar{background:#f1f2f4!important;color:#4e545d!important}
+.leader-row{border-bottom-color:#eceef1!important}
+.leader-row b{color:#17191e!important}
+
+/* Finance */
+.finance-panel{background:#fff!important}
+.finance-input.month.paid{background:#ecf8f1!important;border-color:#b8dfc9!important;color:#247c4b!important}
+
+/* Session / access */
+.session-user{background:#fff!important;border-color:#dfe2e7!important;box-shadow:0 8px 24px rgba(17,19,24,.08)!important}
+.session-avatar{background:#f3c316!important;color:#111318!important}
+.session-user b{color:#17191e!important}.session-user span{color:#8a909b!important}
+.access-button{background:#f3c316!important;border-color:#deb100!important;color:#111318!important;box-shadow:none!important}
+.access-button b{background:#111318!important;color:#fff!important}
+.access-panel{background:#f5f6f8!important;border-left-color:#dfe2e7!important}
+.access-card,.active-account{background:#fff!important;border-color:#e1e4e8!important}
+
+/* Role portals keep same design language */
+.role-portal,.student-portal{background:#f5f6f8!important;color:#17191e!important}
+.portal-head h1,.student-hero h1{color:#15171c!important}
+.portal-head p,.student-hero p{color:#8a909b!important}
+.portal-kpi{background:#fff!important;border-color:#e4e7eb!important;box-shadow:none!important}
+.portal-kpi>div{background:#fff6c9!important;color:#907000!important}
+.portal-kpi strong{color:#15171c!important}.portal-kpi span{color:#9197a1!important}
+.shop-manager-add,.manager-product,.student-product{background:#fff!important;border-color:#e5e7eb!important;box-shadow:none!important}
+.product-image,.student-product-image{background:#f3f4f6!important;color:#777e88!important}
+.manager-add-grid input,.product-edit-row input,.product-name-input,.portal-search{background:#fff!important;border-color:#e1e4e8!important;color:#202329!important}
+.student-wallet>div{background:#fff!important;border-color:#e4e7eb!important;box-shadow:none!important}
+.student-product h3{color:#15171c!important}
+
+/* Auth stays warm but sharper */
+.auth-page{background:linear-gradient(135deg,#f3f4f6,#fff7d8)!important}
+.auth-card,.status-card{background:#fff!important;border-color:#e3e5e9!important;box-shadow:0 18px 50px rgba(17,19,24,.10)!important}
+.auth-tabs{background:#f1f2f4!important}.auth-tabs button.active{background:#fff!important;color:#17191e!important}
+.auth-card input{background:#fff!important;border-color:#e0e3e7!important;color:#17191e!important}
+.auth-submit{background:#f3c316!important;color:#111318!important;border-color:#deb100!important}
+
+/* Desktop density like reference */
+@media(min-width:1200px){
+  .content{padding-left:24px!important;padding-right:24px!important}
+  .kpi-grid{gap:9px!important}.dashboard-grid{gap:14px!important}
+}
+
+@media(max-width:980px){
+  .app-shell{grid-template-columns:72px minmax(0,1fr)!important}
+  .sidebar{padding-left:9px!important;padding-right:9px!important}
+  .sidebar nav button.active:before{left:-9px!important}
+}
+
+@media(max-width:680px){
+  .sidebar{background:#0f1116!important;border-top:1px solid #24272e!important}
+  .sidebar nav button.active:before{display:none!important}
+  .sidebar nav button.active{box-shadow:inset 0 -3px #f3c316!important}
+  .content{padding-left:11px!important;padding-right:11px!important}
+}
