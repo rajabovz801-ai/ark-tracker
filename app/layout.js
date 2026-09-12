@@ -10,7 +10,9 @@ import './dashboard-polish.css';
 import './cloud-status.css';
 import './reports.css';
 import './student-lifecycle.css';
+import './uzbek-upgrade.css';
 import AuthGate from './AuthGate';
+import UzbekUI from './UzbekUI';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -21,13 +23,13 @@ const poppins = Poppins({
 
 export const metadata = {
   title: 'ARK Tracker',
-  description: 'ARK Education management, finance, roles and gamification platform',
+  description: 'ARK Education o‘quv markazi boshqaruv, moliya, rollar va gamifikatsiya platformasi',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={poppins.variable}>
-      <body><AuthGate>{children}</AuthGate></body>
+    <html lang="uz" className={poppins.variable}>
+      <body><UzbekUI/><AuthGate>{children}</AuthGate></body>
     </html>
   );
 }
