@@ -1,7 +1,7 @@
 'use client';
 
 export const SUPABASE_URL = 'https://svdigxqdivcmljirjwhk.supabase.co';
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2ZGlneHFkaXZjbWxqaXJqd2hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyOTg3NDYsImV4cCI6MjEwMjg3NDc0Nn0.otGWq3hDPDKNAVHNvPkWHZhK7ezlSFZffEAcQlc0RzY';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6InN2ZGlneHFkaXZjbWxqaXJqd2hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyOTg3NDYsImV4cCI6MjEwMjg3NDc0Nn0.otGWq3hDPDKNAVHNvPkWHZhK7ezlSFZffEAcQlc0RzY';
 export const SESSION_KEY = 'ark-auth-session';
 export const STATE_KEY = 'ark-tracker-v1';
 
@@ -14,6 +14,7 @@ export function readSession() {
 export function writeSession(session) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  window.dispatchEvent(new CustomEvent('ark-session-refreshed', { detail: { expires_at: session?.expires_at || 0 } }));
 }
 
 export function clearSession() {
@@ -101,61 +102,86 @@ export async function refreshSession(session = readSession()) {
 
 export async function ensureFreshSession(session = readSession()) {
   if (!session?.access_token) return null;
-  if (Number(session.expires_at || 0) < Math.floor(Date.now() / 1000) + 90) {
+  if (Number(session.expires_at || 0) < Math.floor(Date.now() / 1000) + 120) {
     return refreshSession(session);
   }
   return session;
 }
 
+async function authenticatedFetch(url, init = {}, session = readSession(), retry = true) {
+  let fresh = await ensureFreshSession(session);
+  if (!fresh?.access_token) throw new Error('Session expired. Please sign in again.');
+  const json = init.json !== false;
+  const headers = { ...baseHeaders(fresh.access_token, json), ...(init.headers || {}) };
+  const response = await fetch(url, { ...init, headers });
+  if (response.status === 401 && retry) {
+    fresh = await refreshSession(fresh);
+    return authenticatedFetch(url, init, fresh, false);
+  }
+  return response;
+}
+
 export async function fetchMyProfile(session) {
-  const uid = session?.user?.id;
+  const fresh = await ensureFreshSession(session);
+  const uid = fresh?.user?.id;
   if (!uid) throw new Error('Invalid session.');
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?user_id=eq.${encodeURIComponent(uid)}&select=*`, {
-    headers: baseHeaders(session.access_token, false),
-    cache: 'no-store',
-  });
+  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?user_id=eq.${encodeURIComponent(uid)}&select=*`, {
+    method: 'GET', json: false, cache: 'no-store',
+  }, fresh);
   const rows = await parseResponse(response);
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
 export async function listProfiles(session) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?select=*&order=created_at.desc`, {
-    headers: baseHeaders(session.access_token, false),
-    cache: 'no-store',
-  });
+  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?select=*&order=created_at.desc`, {
+    method: 'GET', json: false, cache: 'no-store',
+  }, session);
   return parseResponse(response);
 }
 
 export async function updateProfile(session, userId, patch) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?user_id=eq.${encodeURIComponent(userId)}`, {
+  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?user_id=eq.${encodeURIComponent(userId)}`, {
     method: 'PATCH',
-    headers: { ...baseHeaders(session.access_token), Prefer: 'return=minimal' },
+    headers: { Prefer: 'return=minimal' },
     body: JSON.stringify(patch),
-  });
+  }, session);
   return parseResponse(response);
 }
 
 export async function rpc(session, name, args = {}) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: 'POST',
-    headers: baseHeaders(session.access_token),
     body: JSON.stringify(args),
     cache: 'no-store',
-  });
+  }, session);
   return parseResponse(response);
 }
 
+export async function loadTrackerStateWithMeta(session) {
+  return rpc(session, 'ark_tracker_get_state');
+}
+
 export async function loadTrackerState(session) {
-  const result = await rpc(session, 'ark_tracker_get_state');
+  const result = await loadTrackerStateWithMeta(session);
   return result?.data || {};
 }
 
-export async function saveTrackerState(session, data) {
-  return rpc(session, 'ark_tracker_save_state', { p_data: data });
+export async function saveTrackerState(session, data, baseUpdatedAt = null) {
+  const args = { p_data: data };
+  if (baseUpdatedAt) args.p_base_updated_at = baseUpdatedAt;
+  return rpc(session, 'ark_tracker_save_state', args);
 }
 
 export async function buyShopItem(session, itemId) {
   return rpc(session, 'ark_tracker_buy_shop_item', { p_item_id: itemId });
+}
+
+export async function setShopOrderStatus(session, orderId, status) {
+  return rpc(session, 'ark_tracker_set_order_status', { p_order_id: orderId, p_status: status });
+}
+
+export async function createTrackerBackup(session, label = 'manual') {
+  return rpc(session, 'ark_tracker_create_backup', { p_label: label });
 }
 
 export async function uploadShopImage(session, file) {
@@ -164,16 +190,12 @@ export async function uploadShopImage(session, file) {
   if (file.size > 2 * 1024 * 1024) throw new Error('Image must be smaller than 2 MB.');
   const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
   const path = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
-  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/ark-shop-images/${path}`, {
+  const response = await authenticatedFetch(`${SUPABASE_URL}/storage/v1/object/ark-shop-images/${path}`, {
     method: 'POST',
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': file.type,
-      'x-upsert': 'false',
-    },
+    json: false,
+    headers: { 'Content-Type': file.type, 'x-upsert': 'false' },
     body: file,
-  });
+  }, session);
   await parseResponse(response);
   return `${SUPABASE_URL}/storage/v1/object/public/ark-shop-images/${path}`;
 }
