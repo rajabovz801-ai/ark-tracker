@@ -10,6 +10,7 @@ import ResultsBoardEnhancer from './ResultsBoardEnhancer';
 import ShopCrudEnhancer from './ShopCrudEnhancer';
 import RuntimeHardening from './RuntimeHardening';
 import AccessHardeningEnhancer from './AccessHardeningEnhancer';
+import CourseLeaderboardEnhancer from './CourseLeaderboardEnhancer';
 
 const REMOUNT_SOURCES = new Set(['student-lifecycle','access-center','shop-crud','cloud-remote']);
 
@@ -34,6 +35,7 @@ export default function Page() {
     <ReportsEnhancer/>
     <StudentLifecycleEnhancer/>
     <ResultsBoardEnhancer/>
+    <CourseLeaderboardEnhancer/>
     <ShopCrudEnhancer/>
   </>;
 }
