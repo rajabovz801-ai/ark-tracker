@@ -14,15 +14,8 @@
   let refreshing = null;
   const originalSetItem = Storage.prototype.setItem;
 
-  function storeDirect(key, value) {
-    originalSetItem.call(window.localStorage, key, value);
-  }
-
-  function readSession() {
-    try { return JSON.parse(window.localStorage.getItem(SESSION_KEY) || 'null'); }
-    catch (_) { return null; }
-  }
-
+  function storeDirect(key, value) { originalSetItem.call(window.localStorage, key, value); }
+  function readSession() { try { return JSON.parse(window.localStorage.getItem(SESSION_KEY) || 'null'); } catch (_) { return null; } }
   function writeSession(session) {
     storeDirect(SESSION_KEY, JSON.stringify(session));
     window.dispatchEvent(new CustomEvent('ark-session-refreshed', { detail: { expires_at: session?.expires_at || 0 } }));
@@ -34,9 +27,7 @@
       const current = readSession();
       if (!current?.refresh_token) throw new Error('ARK session expired. Please sign in again.');
       const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
-        method: 'POST',
-        headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: current.refresh_token }),
+        method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: current.refresh_token }),
       });
       const text = await response.text();
       let data = null;
@@ -51,8 +42,7 @@
       writeSession(next);
       return next;
     })();
-    try { return await refreshing; }
-    finally { refreshing = null; }
+    try { return await refreshing; } finally { refreshing = null; }
   }
 
   async function freshSession() {
@@ -66,12 +56,7 @@
     let session = await freshSession();
     const make = token => fetch(url, {
       ...options,
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-      },
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(options.headers || {}) },
     });
     let response = await make(session.access_token);
     if (response.status === 401 && retry) {
@@ -95,9 +80,7 @@
   }
 
   async function fetchRemote() {
-    const response = await authedFetch(`${SUPABASE_URL}/rest/v1/rpc/ark_tracker_get_state`, {
-      method: 'POST', body: '{}', cache: 'no-store',
-    });
+    const response = await authedFetch(`${SUPABASE_URL}/rest/v1/rpc/ark_tracker_get_state_v2`, { method: 'POST', body: '{}', cache: 'no-store' });
     return parse(response, 'Cloud read failed');
   }
 
@@ -106,9 +89,7 @@
     let data;
     try { data = JSON.parse(raw); } catch (_) { return false; }
     const payload = { p_data: data, p_base_updated_at: lastRemoteUpdatedAt || null };
-    const response = await authedFetch(`${SUPABASE_URL}/rest/v1/rpc/ark_tracker_save_state_v2`, {
-      method: 'POST', body: JSON.stringify(payload), cache: 'no-store',
-    });
+    const response = await authedFetch(`${SUPABASE_URL}/rest/v1/rpc/ark_tracker_save_state_v2`, { method: 'POST', body: JSON.stringify(payload), cache: 'no-store' });
     const result = await parse(response, 'Cloud save failed');
     if (result?.updated_at) lastRemoteUpdatedAt = result.updated_at;
     return true;
@@ -118,7 +99,6 @@
     window.__ARK_CLOUD_READY__ = true;
     window.dispatchEvent(new CustomEvent('ark-cloud-ready'));
   }
-
   function notifyError(error) {
     window.__ARK_CLOUD_READY__ = false;
     window.dispatchEvent(new CustomEvent('ark-cloud-error', { detail: { message: error?.message || 'Cloud sync unavailable.' } }));
@@ -196,13 +176,7 @@
     }
   }
 
-  window.addEventListener('online', () => {
-    if (pendingValue) scheduleRetry();
-    else if (!cloudReady) initCloud();
-  });
-  window.addEventListener('ark-session-refreshed', () => {
-    if (!cloudReady) initCloud();
-  });
-
+  window.addEventListener('online', () => { if (pendingValue) scheduleRetry(); else if (!cloudReady) initCloud(); });
+  window.addEventListener('ark-session-refreshed', () => { if (!cloudReady) initCloud(); });
   initCloud();
 })();
