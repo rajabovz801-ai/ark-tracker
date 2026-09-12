@@ -4,6 +4,7 @@ export const SUPABASE_URL = 'https://svdigxqdivcmljirjwhk.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6InN2ZGlneHFkaXZjbWxqaXJqd2hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyOTg3NDYsImV4cCI6MjEwMjg3NDc0Nn0.otGWq3hDPDKNAVHNvPkWHZhK7ezlSFZffEAcQlc0RzY';
 export const SESSION_KEY = 'ark-auth-session';
 export const STATE_KEY = 'ark-tracker-v1';
+export const STATE_VERSION_KEY = '__arkUpdatedAt';
 
 export function readSession() {
   if (typeof window === 'undefined') return null;
@@ -102,9 +103,7 @@ export async function refreshSession(session = readSession()) {
 
 export async function ensureFreshSession(session = readSession()) {
   if (!session?.access_token) return null;
-  if (Number(session.expires_at || 0) < Math.floor(Date.now() / 1000) + 120) {
-    return refreshSession(session);
-  }
+  if (Number(session.expires_at || 0) < Math.floor(Date.now() / 1000) + 120) return refreshSession(session);
   return session;
 }
 
@@ -163,11 +162,14 @@ export async function loadTrackerStateWithMeta(session) {
 
 export async function loadTrackerState(session) {
   const result = await loadTrackerStateWithMeta(session);
-  return result?.data || {};
+  return { ...(result?.data || {}), [STATE_VERSION_KEY]: result?.updated_at || null };
 }
 
 export async function saveTrackerState(session, data, baseUpdatedAt = null) {
-  return rpc(session, 'ark_tracker_save_state_v2', { p_data: data, p_base_updated_at: baseUpdatedAt || null });
+  const effectiveBase = baseUpdatedAt || data?.[STATE_VERSION_KEY] || null;
+  const clean = { ...(data || {}) };
+  delete clean[STATE_VERSION_KEY];
+  return rpc(session, 'ark_tracker_save_state_v2', { p_data: clean, p_base_updated_at: effectiveBase });
 }
 
 export async function buyShopItem(session, itemId) {
