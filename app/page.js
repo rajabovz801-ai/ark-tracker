@@ -8,23 +8,30 @@ import ReportsNavFix from './ReportsNavFix';
 import StudentLifecycleEnhancer from './StudentLifecycleEnhancer';
 import ResultsBoardEnhancer from './ResultsBoardEnhancer';
 import ShopCrudEnhancer from './ShopCrudEnhancer';
+import RuntimeHardening from './RuntimeHardening';
+
+const REMOUNT_SOURCES = new Set(['student-lifecycle','access-center','shop-crud','cloud-remote']);
 
 export default function Page() {
   const [revision, setRevision] = useState(0);
 
   useEffect(() => {
-    const refresh = () => setRevision(value => value + 1);
+    const refresh = event => {
+      const source = event?.detail?.source || '';
+      if (REMOUNT_SOURCES.has(source)) setRevision(value => value + 1);
+    };
     window.addEventListener('ark-tracker-state-updated', refresh);
     return () => window.removeEventListener('ark-tracker-state-updated', refresh);
   }, []);
 
   return <>
     <ArkTrackerV2 key={`tracker-${revision}`}/>
-    <DashboardEnhancer key={`dashboard-${revision}`}/>
-    <ReportsEnhancer key={`reports-${revision}`}/>
-    <ReportsNavFix key={`reports-nav-${revision}`}/>
-    <StudentLifecycleEnhancer key={`lifecycle-${revision}`}/>
-    <ResultsBoardEnhancer key={`results-board-${revision}`}/>
-    <ShopCrudEnhancer key={`shop-crud-${revision}`}/>
+    <RuntimeHardening/>
+    <ReportsNavFix/>
+    <DashboardEnhancer/>
+    <ReportsEnhancer/>
+    <StudentLifecycleEnhancer/>
+    <ResultsBoardEnhancer/>
+    <ShopCrudEnhancer/>
   </>;
 }
