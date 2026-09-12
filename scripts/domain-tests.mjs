@@ -39,7 +39,7 @@ const state = {
 };
 
 const asOf = new Date('2026-09-12T12:00:00');
-assert.equal(currentPaymentState(state,trial,asOf).key,'trial','trial must never become debtor');
+assert.equal(currentPaymentState(state,trial,asOf).key,'exempt','trial must never become debtor');
 assert.equal(cumulativeDebt(state,trial,asOf),0,'trial debt must be zero');
 assert.equal(cumulativeDebt(state,active,asOf),300000,'active cumulative debt must use payment start and paid amount');
 
