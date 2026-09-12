@@ -11,6 +11,7 @@ import './cloud-status.css';
 import './reports.css';
 import './student-lifecycle.css';
 import './uzbek-upgrade.css';
+import './hardening.css';
 import AuthGate from './AuthGate';
 import UzbekUI from './UzbekUI';
 
