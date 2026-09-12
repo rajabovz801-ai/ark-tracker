@@ -24,10 +24,7 @@ export function clearSession() {
 }
 
 function baseHeaders(token, json = true) {
-  const headers = {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
-  };
+  const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token || SUPABASE_ANON_KEY}` };
   if (json) headers['Content-Type'] = 'application/json';
   return headers;
 }
@@ -47,36 +44,18 @@ async function parseResponse(response) {
 }
 
 export async function signIn(email, password) {
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-    method: 'POST',
-    headers: baseHeaders(null),
-    body: JSON.stringify({ email: email.trim(), password }),
-  });
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, { method: 'POST', headers: baseHeaders(null), body: JSON.stringify({ email: email.trim(), password }) });
   const data = await parseResponse(response);
-  const session = {
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
-    expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600),
-    user: data.user,
-  };
+  const session = { access_token: data.access_token, refresh_token: data.refresh_token, expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600), user: data.user };
   writeSession(session);
   return session;
 }
 
 export async function signUp(fullName, email, password) {
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
-    method: 'POST',
-    headers: baseHeaders(null),
-    body: JSON.stringify({ email: email.trim(), password, data: { full_name: fullName.trim() } }),
-  });
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, { method: 'POST', headers: baseHeaders(null), body: JSON.stringify({ email: email.trim(), password, data: { full_name: fullName.trim() } }) });
   const data = await parseResponse(response);
   if (data?.access_token) {
-    const session = {
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-      expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600),
-      user: data.user,
-    };
+    const session = { access_token: data.access_token, refresh_token: data.refresh_token, expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600), user: data.user };
     writeSession(session);
     return { session, needsConfirmation: false };
   }
@@ -85,18 +64,9 @@ export async function signUp(fullName, email, password) {
 
 export async function refreshSession(session = readSession()) {
   if (!session?.refresh_token) throw new Error('Session expired. Please sign in again.');
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
-    method: 'POST',
-    headers: baseHeaders(null),
-    body: JSON.stringify({ refresh_token: session.refresh_token }),
-  });
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, { method: 'POST', headers: baseHeaders(null), body: JSON.stringify({ refresh_token: session.refresh_token }) });
   const data = await parseResponse(response);
-  const next = {
-    access_token: data.access_token,
-    refresh_token: data.refresh_token || session.refresh_token,
-    expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600),
-    user: data.user || session.user,
-  };
+  const next = { access_token: data.access_token, refresh_token: data.refresh_token || session.refresh_token, expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600), user: data.user || session.user };
   writeSession(next);
   return next;
 }
@@ -124,40 +94,28 @@ export async function fetchMyProfile(session) {
   const fresh = await ensureFreshSession(session);
   const uid = fresh?.user?.id;
   if (!uid) throw new Error('Invalid session.');
-  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?user_id=eq.${encodeURIComponent(uid)}&select=*`, {
-    method: 'GET', json: false, cache: 'no-store',
-  }, fresh);
+  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?user_id=eq.${encodeURIComponent(uid)}&select=*`, { method: 'GET', json: false, cache: 'no-store' }, fresh);
   const rows = await parseResponse(response);
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
 export async function listProfiles(session) {
-  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?select=*&order=created_at.desc`, {
-    method: 'GET', json: false, cache: 'no-store',
-  }, session);
+  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?select=*&order=created_at.desc`, { method: 'GET', json: false, cache: 'no-store' }, session);
   return parseResponse(response);
 }
 
 export async function updateProfile(session, userId, patch) {
-  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?user_id=eq.${encodeURIComponent(userId)}`, {
-    method: 'PATCH',
-    headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify(patch),
-  }, session);
+  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/ark_tracker_profiles?user_id=eq.${encodeURIComponent(userId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) }, session);
   return parseResponse(response);
 }
 
 export async function rpc(session, name, args = {}) {
-  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
-    method: 'POST',
-    body: JSON.stringify(args),
-    cache: 'no-store',
-  }, session);
+  const response = await authenticatedFetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, { method: 'POST', body: JSON.stringify(args), cache: 'no-store' }, session);
   return parseResponse(response);
 }
 
 export async function loadTrackerStateWithMeta(session) {
-  return rpc(session, 'ark_tracker_get_state');
+  return rpc(session, 'ark_tracker_get_state_v2');
 }
 
 export async function loadTrackerState(session) {
@@ -190,12 +148,7 @@ export async function uploadShopImage(session, file) {
   if (file.size > 2 * 1024 * 1024) throw new Error('Image must be smaller than 2 MB.');
   const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
   const path = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
-  const response = await authenticatedFetch(`${SUPABASE_URL}/storage/v1/object/ark-shop-images/${path}`, {
-    method: 'POST',
-    json: false,
-    headers: { 'Content-Type': file.type, 'x-upsert': 'false' },
-    body: file,
-  }, session);
+  const response = await authenticatedFetch(`${SUPABASE_URL}/storage/v1/object/ark-shop-images/${path}`, { method: 'POST', json: false, headers: { 'Content-Type': file.type, 'x-upsert': 'false' }, body: file }, session);
   await parseResponse(response);
   return `${SUPABASE_URL}/storage/v1/object/public/ark-shop-images/${path}`;
 }
@@ -205,10 +158,7 @@ export function currentMonthKey() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-export function formatMoney(value) {
-  return `${Number(value || 0).toLocaleString('en-US')} UZS`;
-}
-
+export function formatMoney(value) { return `${Number(value || 0).toLocaleString('en-US')} UZS`; }
 export function levelFor(xp) {
   const n = Number(xp || 0);
   if (n >= 5000) return 'Diamond';
