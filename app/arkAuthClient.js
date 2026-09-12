@@ -167,9 +167,7 @@ export async function loadTrackerState(session) {
 }
 
 export async function saveTrackerState(session, data, baseUpdatedAt = null) {
-  const args = { p_data: data };
-  if (baseUpdatedAt) args.p_base_updated_at = baseUpdatedAt;
-  return rpc(session, 'ark_tracker_save_state', args);
+  return rpc(session, 'ark_tracker_save_state_v2', { p_data: data, p_base_updated_at: baseUpdatedAt || null });
 }
 
 export async function buyShopItem(session, itemId) {
