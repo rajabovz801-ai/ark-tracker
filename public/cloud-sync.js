@@ -4,7 +4,7 @@
   const STATE_KEY = 'ark-tracker-v1';
   const SESSION_KEY = 'ark-auth-session';
   const SUPABASE_URL = 'https://svdigxqdivcmljirjwhk.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2ZGlneHFkaXZjbWxqaXJqd2hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyOTg3NDYsImV4cCI6MjEwMjg3NDc0Nn0.otGWq3hDPDKNAVHNvPkWHZhK7ezlSFZffEAcQlc0RzY';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6InN2ZGlneHFkaXZjbWxqaXJqd2hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyOTg3NDYsImV4cCI6MjEwMjg3NDc0Nn0.otGWq3hDPDKNAVHNvPkWHZhK7ezlSFZffEAcQlc0RzY';
 
   let cloudReady = false;
   let pendingValue = null;
@@ -105,9 +105,8 @@
     if (!raw) return false;
     let data;
     try { data = JSON.parse(raw); } catch (_) { return false; }
-    const payload = { p_data: data };
-    if (lastRemoteUpdatedAt) payload.p_base_updated_at = lastRemoteUpdatedAt;
-    const response = await authedFetch(`${SUPABASE_URL}/rest/v1/rpc/ark_tracker_save_state`, {
+    const payload = { p_data: data, p_base_updated_at: lastRemoteUpdatedAt || null };
+    const response = await authedFetch(`${SUPABASE_URL}/rest/v1/rpc/ark_tracker_save_state_v2`, {
       method: 'POST', body: JSON.stringify(payload), cache: 'no-store',
     });
     const result = await parse(response, 'Cloud save failed');
