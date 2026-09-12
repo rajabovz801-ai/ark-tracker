@@ -9,6 +9,7 @@ import StudentLifecycleEnhancer from './StudentLifecycleEnhancer';
 import ResultsBoardEnhancer from './ResultsBoardEnhancer';
 import ShopCrudEnhancer from './ShopCrudEnhancer';
 import RuntimeHardening from './RuntimeHardening';
+import AccessHardeningEnhancer from './AccessHardeningEnhancer';
 
 const REMOUNT_SOURCES = new Set(['student-lifecycle','access-center','shop-crud','cloud-remote']);
 
@@ -28,6 +29,7 @@ export default function Page() {
     <ArkTrackerV2 key={`tracker-${revision}`}/>
     <RuntimeHardening/>
     <ReportsNavFix/>
+    <AccessHardeningEnhancer/>
     <DashboardEnhancer/>
     <ReportsEnhancer/>
     <StudentLifecycleEnhancer/>
