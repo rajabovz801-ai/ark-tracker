@@ -43,7 +43,7 @@ assert.equal(currentPaymentState(state,trial,asOf).key,'exempt','trial must neve
 assert.equal(cumulativeDebt(state,trial,asOf),0,'trial debt must be zero');
 assert.equal(cumulativeDebt(state,active,asOf),300000,'active cumulative debt must use payment start and paid amount');
 
-const activity = continuousActivityDates(state,['a'],new Date('2026-10-02T12:00:00'));
+const activity = continuousActivityDates(state,['a'],'2026-10-02');
 assert.equal(activity[0],'2026-09-07');
 assert.equal(activity.at(-1),'2026-10-02');
 assert.ok(activity.length > 20,'results timeline must not stop at 20 days');
