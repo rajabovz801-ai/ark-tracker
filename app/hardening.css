@@ -21,6 +21,12 @@
 .app-shell:not(.reports-mode) .sidebar nav button[data-page-key="Reports"].active{background:transparent!important;color:inherit!important;box-shadow:none!important}
 .app-shell.reports-mode .sidebar nav button[data-page-key="Reports"]{background:#f2c319!important;color:#151515!important}
 
+/* The original fixed date select still drives React state; the visible native picker has no end date. */
+.app-shell[data-page-key="Daily"] .ark-native-date-select{display:none!important}
+.ark-dynamic-date-picker{gap:8px!important;padding:0 10px!important;min-width:168px}
+.ark-dynamic-date-picker input{border:0!important;background:transparent!important;outline:0!important;font:inherit!important;font-size:11px!important;font-weight:700!important;color:#1b1d22!important;min-width:132px}
+.ark-date-icon{font-size:13px;color:#8a6b00}
+
 .xp-leaderboard-mode .content > .page-stack{display:none!important}
 .xp-leaderboard-mode .content > .xp-leaderboard-root{display:block!important;padding:22px 24px 80px}
 .xp-leaderboard-page .leader-row{grid-template-columns:34px 38px minmax(0,1fr) auto auto;gap:10px}
@@ -41,4 +47,6 @@
   .xp-leaderboard-mode .content > .xp-leaderboard-root{padding:14px 12px 96px}
   .xp-leaderboard-page .leader-row{grid-template-columns:28px 34px minmax(0,1fr) auto}
   .xp-leaderboard-page .leader-row>.xp-wallet{grid-column:3/5;justify-self:start;margin-top:-5px}
+  .ark-dynamic-date-picker{width:100%;min-width:0}
+  .ark-dynamic-date-picker input{width:100%}
 }
