@@ -1,0 +1,37 @@
+/* ARK Tracker hardening layer: semantic navigation, teacher scope and long-running charts. */
+
+/* Teacher permissions must follow page keys, never nth-child order. */
+.role-teacher .sidebar nav button{display:flex!important}
+.role-teacher .sidebar nav button[data-page-key="Groups"],
+.role-teacher .sidebar nav button[data-page-key="Staff"],
+.role-teacher .sidebar nav button[data-page-key="Finance"],
+.role-teacher .sidebar nav button[data-page-key="Reports"],
+.role-teacher .sidebar nav button[data-page-key="Shop"]{display:none!important}
+.role-teacher .course-switcher{display:none!important}
+
+/* Staff accounts are created through Pending -> Owner approval, not a second local-only staff flow. */
+.app-shell[data-page-key="Staff"] .page-stack > .panel .panel-head > .primary{display:none!important}
+
+/* New lifecycle column: payment start month. */
+.lifecycle-grid.lifecycle-grid-v2{grid-template-columns:minmax(180px,1.45fr) minmax(145px,1fr) 132px 132px 132px 82px 120px minmax(145px,1fr) 120px}
+
+/* Daily result history can grow forever; keep the chart inside its own scroll area. */
+.results-bars-wrap.dynamic-results{overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;padding-bottom:4px}
+.results-bars-wrap.dynamic-results .results-bars{overflow:visible}
+.results-bars-wrap.dynamic-results .results-y-axis{position:sticky;left:0;z-index:3;background:#fff;padding-right:5px}
+
+/* Make a course-scoped teacher dashboard feel intentional. */
+.role-teacher .top-title p:after{content:' · faqat biriktirilgan kurs va guruhlar';color:#9aa1ac}
+
+/* Reports is a real navigation state, not a visual overlay accidentally left active. */
+.app-shell:not(.reports-mode) .sidebar nav button[data-page-key="Reports"].active{background:transparent!important;color:inherit!important;box-shadow:none!important}
+.app-shell.reports-mode .sidebar nav button[data-page-key="Reports"]{background:#f2c319!important;color:#151515!important}
+
+@media(max-width:1200px){
+  .lifecycle-grid.lifecycle-grid-v2{min-width:1210px}
+}
+
+@media(max-width:680px){
+  .lifecycle-grid.lifecycle-grid-v2{min-width:0;grid-template-columns:1fr 1fr}
+  .role-teacher .top-title p:after{display:none}
+}
