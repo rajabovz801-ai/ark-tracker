@@ -1,9 +1,37 @@
 'use client';
 
 export const SUPABASE_URL = 'https://svdigxqdivcmljirjwhk.supabase.co';
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2ZGlneHFkaXZjbWxqaXJqd2hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyOTg3NDYsImV4cCI6MjEwMjg3NDc0Nn0.otGWq3hDPDKNAVHNvPkWHZhK7ezlSFZffEAcQlc0RzY';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBiYXNlIiwicmVmIjoic3ZkaWd4cWRpdmNtbGppcmp3aGsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc4NzI5ODc0NiwiZXhwIjoyMTAyODc0NzQ2fQ.otGWq3hDPDKNAVHNvPkWHZhK7ezlSFZffEAcQlc0RzY';
 export const SESSION_KEY = 'ark-auth-session';
 export const STATE_KEY = 'ark-tracker-v1';
+export const WEEKLY_POINTS_TIME_ZONE = 'Asia/Tashkent';
+
+export function weeklyPointsCycleKey(at = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: WEEKLY_POINTS_TIME_ZONE,
+    year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  }).formatToParts(at);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const y = Number(values.year);
+  const m = Number(values.month);
+  const d = Number(values.day);
+  const isoDow = ({ Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 })[values.weekday] || 1;
+  const cycle = new Date(Date.UTC(y, m - 1, d));
+  cycle.setUTCDate(cycle.getUTCDate() + (isoDow === 7 ? 1 : -(isoDow - 1)));
+  return `${cycle.getUTCFullYear()}-${String(cycle.getUTCMonth() + 1).padStart(2, '0')}-${String(cycle.getUTCDate()).padStart(2, '0')}`;
+}
+
+export function normalizeWeeklyPointsState(data, at = new Date()) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data || {};
+  const cycle = weeklyPointsCycleKey(at);
+  if (data.weeklyPointsCycle === cycle) return data;
+  return {
+    ...data,
+    students: (Array.isArray(data.students) ? data.students : []).map(student => ({ ...student, pts: 0 })),
+    weeklyPointsCycle: cycle,
+    weeklyPointsResetAt: at.toISOString(),
+  };
+}
 
 export function readSession() {
   if (typeof window === 'undefined') return null;
@@ -147,11 +175,11 @@ export async function rpc(session, name, args = {}) {
 
 export async function loadTrackerState(session) {
   const result = await rpc(session, 'ark_tracker_get_state');
-  return result?.data || {};
+  return normalizeWeeklyPointsState(result?.data || {});
 }
 
 export async function saveTrackerState(session, data) {
-  return rpc(session, 'ark_tracker_save_state', { p_data: data });
+  return rpc(session, 'ark_tracker_save_state', { p_data: normalizeWeeklyPointsState(data) });
 }
 
 export async function buyShopItem(session, itemId) {
