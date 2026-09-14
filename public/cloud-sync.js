@@ -4,7 +4,8 @@
   const STATE_KEY = 'ark-tracker-v1';
   const SESSION_KEY = 'ark-auth-session';
   const SUPABASE_URL = 'https://svdigxqdivcmljirjwhk.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2ZGlneHFkaXZjbWxqaXJqd2hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyOTg3NDYsImV4cCI6MjEwMjg3NDc0Nn0.otGWq3hDPDKNAVHNvPkWHZhK7ezlSFZffEAcQlc0RzY';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB...REDACTED_FOR_TOOL_CALL...';
+  const WEEKLY_POINTS_TIME_ZONE = 'Asia/Tashkent';
 
   let cloudReady = false;
   let pendingValue = null;
@@ -13,6 +14,46 @@
 
   function storeDirect(key, value) {
     originalSetItem.call(window.localStorage, key, value);
+  }
+
+  function weeklyPointsCycleKey(at = new Date()) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: WEEKLY_POINTS_TIME_ZONE,
+      year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+    }).formatToParts(at);
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    const y = Number(values.year);
+    const m = Number(values.month);
+    const d = Number(values.day);
+    const isoDow = ({ Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 })[values.weekday] || 1;
+    const cycle = new Date(Date.UTC(y, m - 1, d));
+    cycle.setUTCDate(cycle.getUTCDate() + (isoDow === 7 ? 1 : -(isoDow - 1)));
+    return `${cycle.getUTCFullYear()}-${String(cycle.getUTCMonth() + 1).padStart(2, '0')}-${String(cycle.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  function normalizeWeeklyPointsState(data, at = new Date()) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return { data, changed: false };
+    const cycle = weeklyPointsCycleKey(at);
+    if (data.weeklyPointsCycle === cycle) return { data, changed: false };
+    const students = (Array.isArray(data.students) ? data.students : []).map(student => ({ ...student, pts: 0 }));
+    return {
+      data: {
+        ...data,
+        students,
+        weeklyPointsCycle: cycle,
+        weeklyPointsResetAt: at.toISOString(),
+      },
+      changed: true,
+    };
+  }
+
+  function normalizeRawState(raw) {
+    try {
+      const parsed = JSON.parse(String(raw || 'null'));
+      return JSON.stringify(normalizeWeeklyPointsState(parsed).data);
+    } catch (_) {
+      return String(raw || '');
+    }
   }
 
   function sessionToken() {
@@ -50,7 +91,7 @@
   async function pushRaw(raw) {
     if (!raw) return false;
     let data;
-    try { data = JSON.parse(raw); } catch (_) { return false; }
+    try { data = JSON.parse(normalizeRawState(raw)); } catch (_) { return false; }
     const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/ark_tracker_save_state`, {
       method: 'POST',
       headers: headers(),
@@ -74,7 +115,7 @@
   }
 
   function schedulePush(raw) {
-    pendingValue = raw;
+    pendingValue = normalizeRawState(raw);
     if (!cloudReady) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
@@ -90,8 +131,13 @@
 
   if (!window.__ARK_STORAGE_PATCHED__) {
     Storage.prototype.setItem = function patchedSetItem(key, value) {
+      if (this === window.localStorage && key === STATE_KEY) {
+        const normalized = normalizeRawState(value);
+        originalSetItem.call(this, key, normalized);
+        schedulePush(normalized);
+        return;
+      }
       originalSetItem.call(this, key, value);
-      if (this === window.localStorage && key === STATE_KEY) schedulePush(String(value));
     };
     window.__ARK_STORAGE_PATCHED__ = true;
   }
@@ -107,7 +153,9 @@
       const remote = await fetchRemote();
       const remoteData = remote?.data;
       if (remoteData && typeof remoteData === 'object') {
-        const remoteRaw = JSON.stringify(remoteData);
+        const normalizedRemote = normalizeWeeklyPointsState(remoteData);
+        const remoteRaw = JSON.stringify(normalizedRemote.data);
+        if (normalizedRemote.changed) await pushRaw(remoteRaw);
         if (remoteRaw !== localRaw) {
           storeDirect(STATE_KEY, remoteRaw);
           cloudReady = true;
