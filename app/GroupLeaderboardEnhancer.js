@@ -111,9 +111,14 @@ export default function GroupLeaderboardEnhancer() {
   const [mode, setMode] = useState('xp');
   const rawRef = useRef('');
   const courseRef = useRef('');
+  const mountRef = useRef(null);
 
   useEffect(() => {
+    let cancelled = false;
+    let navTimer = null;
+
     const refreshData = () => {
+      if (cancelled) return;
       const raw = localStorage.getItem(STATE_KEY) || '{}';
       const course = localStorage.getItem(COURSE_KEY) || 'english';
       if (raw !== rawRef.current) {
@@ -126,51 +131,92 @@ export default function GroupLeaderboardEnhancer() {
       }
     };
 
-    const clearLeaderboardMount = () => {
-      document.querySelectorAll('.ark-core-leaderboard-hidden').forEach(node => node.classList.remove('ark-core-leaderboard-hidden'));
-      document.querySelectorAll('[data-group-leaderboard-host="1"]').forEach(node => node.remove());
-      setMount(null);
+    const unmountLeaderboard = () => {
+      const content = document.querySelector('.app-shell .content');
+      const hiddenCore = content?.querySelector('.ark-core-leaderboard-hidden');
+      if (hiddenCore) hiddenCore.classList.remove('ark-core-leaderboard-hidden');
+      const host = content?.querySelector('[data-group-leaderboard-host="1"]');
+      if (mountRef.current) {
+        mountRef.current = null;
+        setMount(null);
+      }
+      if (host) host.remove();
     };
 
-    const locate = () => {
+    const syncPage = () => {
+      if (cancelled) return;
       const shell = document.querySelector('.app-shell');
       const active = shell?.querySelector('.sidebar nav button.active')?.textContent?.trim().toLowerCase() || '';
       const isLeaderboard = active.includes('leaderboard') || active.includes('reyting');
       if (!isLeaderboard) {
-        clearLeaderboardMount();
+        unmountLeaderboard();
         return;
       }
 
       const content = shell?.querySelector('.content');
-      const stack = content?.querySelector('.page-stack');
-      if (!content || !stack) return;
+      if (!content) return;
+      const coreStack = Array.from(content.children).find(node => node.classList?.contains('page-stack'));
+      if (!coreStack) return;
 
-      stack.classList.add('ark-core-leaderboard-hidden');
+      if (!coreStack.classList.contains('ark-core-leaderboard-hidden')) {
+        coreStack.classList.add('ark-core-leaderboard-hidden');
+      }
+
       let host = content.querySelector('[data-group-leaderboard-host="1"]');
       if (!host) {
         host = document.createElement('div');
         host.dataset.groupLeaderboardHost = '1';
-        stack.insertAdjacentElement('afterend', host);
+        coreStack.insertAdjacentElement('afterend', host);
       }
-      setMount(host);
+
+      if (mountRef.current !== host) {
+        mountRef.current = host;
+        setMount(host);
+      }
+    };
+
+    const scheduleSync = () => {
+      window.clearTimeout(navTimer);
+      navTimer = window.setTimeout(() => {
+        refreshData();
+        syncPage();
+      }, 0);
+    };
+
+    const onDocumentClick = event => {
+      if (event.target.closest('.sidebar nav button')) scheduleSync();
+    };
+
+    const onDocumentChange = event => {
+      if (event.target.closest('.course-switcher select')) {
+        window.clearTimeout(navTimer);
+        navTimer = window.setTimeout(() => {
+          refreshData();
+          syncPage();
+        }, 80);
+      }
+    };
+
+    const onState = () => {
+      refreshData();
+      syncPage();
     };
 
     refreshData();
-    locate();
-
-    const observer = new MutationObserver(() => locate());
-    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
-    const timer = window.setInterval(() => { refreshData(); locate(); }, 900);
-    const onState = () => { refreshData(); setTimeout(locate, 0); };
+    syncPage();
+    document.addEventListener('click', onDocumentClick, true);
+    document.addEventListener('change', onDocumentChange, true);
     window.addEventListener('ark-tracker-state-updated', onState);
     window.addEventListener('storage', onState);
 
     return () => {
-      observer.disconnect();
-      window.clearInterval(timer);
+      cancelled = true;
+      window.clearTimeout(navTimer);
+      document.removeEventListener('click', onDocumentClick, true);
+      document.removeEventListener('change', onDocumentChange, true);
       window.removeEventListener('ark-tracker-state-updated', onState);
       window.removeEventListener('storage', onState);
-      clearLeaderboardMount();
+      unmountLeaderboard();
     };
   }, []);
 
