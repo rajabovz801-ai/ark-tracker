@@ -200,13 +200,14 @@ export default function GroupLeaderboardEnhancer() {
 
   const total = visibleStudents.reduce((sum, student) => sum + metricValue(student, mode), 0);
   const average = visibleStudents.length ? Math.round(total / visibleStudents.length) : 0;
-  const top = visibleStudents[0];
   const weeklyMax = Math.max(0, ...visibleStudents.map(student => Number(student.pts || 0)));
-  const podium = [
+  const competitionStarted = mode === 'xp' || weeklyMax > 0;
+  const top = competitionStarted ? visibleStudents[0] : null;
+  const podium = competitionStarted ? [
     { student: visibleStudents[1], rank: 2 },
     { student: visibleStudents[0], rank: 1 },
     { student: visibleStudents[2], rank: 3 },
-  ].filter(item => item.student);
+  ].filter(item => item.student) : [];
   const selectedLabel = group === 'all' ? 'All groups' : group;
 
   if (!mount) return null;
@@ -239,13 +240,13 @@ export default function GroupLeaderboardEnhancer() {
       <StatCard icon={Users} label="Students" value={visibleStudents.length} hint={selectedLabel}/>
       <StatCard icon={TrendingUp} label={mode === 'xp' ? 'Total XP' : 'Weekly total'} value={total.toLocaleString()} hint={metricLabel(mode)}/>
       <StatCard icon={Trophy} label="Average" value={average.toLocaleString()} hint={`${metricLabel(mode)} per student`}/>
-      <StatCard icon={Crown} label="Top student" value={top?.name || '—'} hint={top ? `${metricValue(top, mode).toLocaleString()} ${metricLabel(mode)}` : 'No data'}/>
+      <StatCard icon={Crown} label="Top student" value={top?.name || '—'} hint={top ? `${metricValue(top, mode).toLocaleString()} ${metricLabel(mode)}` : mode === 'weekly' ? 'No weekly points yet' : 'No data'}/>
     </section>
 
     {visibleStudents.length ? <>
-      <section className="ark-lb-podium">
+      {podium.length ? <section className="ark-lb-podium">
         {podium.map(({ student, rank }) => <PodiumCard key={student.id} student={student} rank={rank} mode={mode}/>)}
-      </section>
+      </section> : <section className="panel ark-lb-weekly-wait"><Trophy size={26}/><div><b>Weekly race hasn’t started yet</b><span>As soon as points are awarded, the Top 3 podium will appear automatically.</span></div></section>}
 
       <section className="panel ark-lb-ranking-panel">
         <div className="ark-lb-ranking-head">
