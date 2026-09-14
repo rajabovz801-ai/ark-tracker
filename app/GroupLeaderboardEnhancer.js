@@ -202,7 +202,11 @@ export default function GroupLeaderboardEnhancer() {
   const average = visibleStudents.length ? Math.round(total / visibleStudents.length) : 0;
   const top = visibleStudents[0];
   const weeklyMax = Math.max(0, ...visibleStudents.map(student => Number(student.pts || 0)));
-  const podium = [visibleStudents[1], visibleStudents[0], visibleStudents[2]].filter(Boolean);
+  const podium = [
+    { student: visibleStudents[1], rank: 2 },
+    { student: visibleStudents[0], rank: 1 },
+    { student: visibleStudents[2], rank: 3 },
+  ].filter(item => item.student);
   const selectedLabel = group === 'all' ? 'All groups' : group;
 
   if (!mount) return null;
@@ -240,10 +244,7 @@ export default function GroupLeaderboardEnhancer() {
 
     {visibleStudents.length ? <>
       <section className="ark-lb-podium">
-        {podium.map((student, index) => {
-          const rank = index === 0 && visibleStudents[1] ? 2 : index === 1 ? 1 : 3;
-          return <PodiumCard key={student.id} student={student} rank={rank} mode={mode}/>;
-        })}
+        {podium.map(({ student, rank }) => <PodiumCard key={student.id} student={student} rank={rank} mode={mode}/>)}
       </section>
 
       <section className="panel ark-lb-ranking-panel">
