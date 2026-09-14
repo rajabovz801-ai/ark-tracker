@@ -4,7 +4,7 @@
   const STATE_KEY = 'ark-tracker-v1';
   const SESSION_KEY = 'ark-auth-session';
   const SUPABASE_URL = 'https://svdigxqdivcmljirjwhk.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBiYXNlIiwicmVmIjoic3ZkaWd4cWRpdmNtbGppcmp3aGsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc4NzI5ODc0NiwiZXhwIjoyMTAyODc0NzQ2fQ.otGWq3hDPDKNAVHNvPkWHZhK7ezlSFZffEAcQlc0RzY';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2ZGlneHFkaXZjbWxqaXJqd2hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyOTg3NDYsImV4cCI6MjEwMjg3NDc0Nn0.otGWq3hDPDKNAVHNvPkWHZhK7ezlSFZffEAcQlc0RzY';
   const WEEKLY_POINTS_TIME_ZONE = 'Asia/Tashkent';
 
   let cloudReady = false;
