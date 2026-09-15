@@ -12,7 +12,14 @@ function normalizeText(value) {
     .trim();
 }
 
-function StudentSearchPicker({ selectEl }) {
+function setNativeSelectValue(selectEl, value) {
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  descriptor?.set?.call(selectEl, value);
+  selectEl.dispatchEvent(new Event('input', { bubbles: true }));
+  selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function StudentSearchPicker({ selectEl, rewardButton }) {
   const rootRef = useRef(null);
   const inputRef = useRef(null);
   const [options, setOptions] = useState([]);
@@ -24,44 +31,63 @@ function StudentSearchPicker({ selectEl }) {
   useEffect(() => {
     if (!selectEl) return;
 
-    const sync = () => {
+    const readOptions = () => {
       const nextOptions = [...selectEl.options]
         .filter(option => option.value)
         .map(option => ({ value: option.value, label: option.textContent?.trim() || '' }));
-      const nextValue = selectEl.value || nextOptions[0]?.value || '';
-      const selected = nextOptions.find(option => option.value === nextValue);
 
       setOptions(nextOptions);
-      setSelectedValue(nextValue);
-      setSearchText(selected?.label || '');
+      setSelectedValue(current => {
+        if (!current || nextOptions.some(option => option.value === current)) return current;
+        setSearchText('');
+        return '';
+      });
     };
 
-    sync();
-    selectEl.addEventListener('change', sync);
-    return () => selectEl.removeEventListener('change', sync);
+    readOptions();
+    const observer = new MutationObserver(readOptions);
+    observer.observe(selectEl, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [selectEl]);
-
-  useEffect(() => {
-    const handleOutside = event => {
-      if (!rootRef.current?.contains(event.target)) {
-        setOpen(false);
-        const selected = options.find(option => option.value === selectedValue);
-        setSearchText(selected?.label || '');
-      }
-    };
-    document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, [options, selectedValue]);
 
   const selectedOption = useMemo(
     () => options.find(option => option.value === selectedValue),
     [options, selectedValue]
   );
 
+  const selectionIsValid = Boolean(
+    selectedOption && normalizeText(searchText) === normalizeText(selectedOption.label)
+  );
+
+  useEffect(() => {
+    if (!rewardButton) return;
+
+    rewardButton.disabled = !selectionIsValid;
+    rewardButton.setAttribute('aria-disabled', selectionIsValid ? 'false' : 'true');
+    rewardButton.title = selectionIsValid ? '' : 'Avval o‘quvchini qidirib tanlang';
+
+    return () => {
+      rewardButton.disabled = false;
+      rewardButton.removeAttribute('aria-disabled');
+      rewardButton.title = '';
+    };
+  }, [rewardButton, selectionIsValid]);
+
+  useEffect(() => {
+    const handleOutside = event => {
+      if (rootRef.current?.contains(event.target)) return;
+      setOpen(false);
+      setSearchText(selectedOption?.label || '');
+    };
+
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [selectedOption]);
+
   const filteredOptions = useMemo(() => {
     const typed = normalizeText(searchText);
     const selectedLabel = normalizeText(selectedOption?.label);
-    const query = typed === selectedLabel ? '' : typed;
+    const query = typed && typed !== selectedLabel ? typed : '';
 
     const matches = !query
       ? options
@@ -82,11 +108,8 @@ function StudentSearchPicker({ selectEl }) {
 
   const choose = option => {
     if (!selectEl || !option) return;
-    const descriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
-    descriptor?.set?.call(selectEl, option.value);
-    selectEl.dispatchEvent(new Event('input', { bubbles: true }));
-    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
 
+    setNativeSelectValue(selectEl, option.value);
     setSelectedValue(option.value);
     setSearchText(option.label);
     setOpen(false);
@@ -96,7 +119,7 @@ function StudentSearchPicker({ selectEl }) {
   const handleFocus = event => {
     setOpen(true);
     setActiveIndex(0);
-    requestAnimationFrame(() => event.currentTarget.select());
+    if (selectionIsValid) requestAnimationFrame(() => event.currentTarget.select());
   };
 
   const handleKeyDown = event => {
@@ -104,14 +127,23 @@ function StudentSearchPicker({ selectEl }) {
       event.preventDefault();
       setOpen(true);
       setActiveIndex(index => Math.min(index + 1, Math.max(0, filteredOptions.length - 1)));
-    } else if (event.key === 'ArrowUp') {
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
       event.preventDefault();
       setOpen(true);
       setActiveIndex(index => Math.max(index - 1, 0));
-    } else if (event.key === 'Enter' && open && filteredOptions.length) {
+      return;
+    }
+
+    if (event.key === 'Enter' && open && filteredOptions.length) {
       event.preventDefault();
       choose(filteredOptions[activeIndex] || filteredOptions[0]);
-    } else if (event.key === 'Escape') {
+      return;
+    }
+
+    if (event.key === 'Escape') {
       setOpen(false);
       setSearchText(selectedOption?.label || '');
       inputRef.current?.blur();
@@ -119,7 +151,7 @@ function StudentSearchPicker({ selectEl }) {
   };
 
   return <div className="ark-student-combobox" ref={rootRef}>
-    <Search className="ark-student-search-icon" size={18}/>
+    <Search className="ark-student-search-icon" size={16}/>
     <input
       ref={inputRef}
       className="ark-student-search-input"
@@ -130,6 +162,7 @@ function StudentSearchPicker({ selectEl }) {
       role="combobox"
       aria-expanded={open}
       aria-autocomplete="list"
+      aria-controls="ark-student-search-list"
       onFocus={handleFocus}
       onClick={() => setOpen(true)}
       onChange={event => {
@@ -139,6 +172,7 @@ function StudentSearchPicker({ selectEl }) {
       }}
       onKeyDown={handleKeyDown}
     />
+
     <button
       type="button"
       className="ark-student-chevron"
@@ -149,10 +183,10 @@ function StudentSearchPicker({ selectEl }) {
         inputRef.current?.focus();
       }}
     >
-      <ChevronDown size={18}/>
+      <ChevronDown size={17}/>
     </button>
 
-    {open && <div className="ark-student-search-menu" role="listbox">
+    {open && <div id="ark-student-search-list" className="ark-student-search-menu" role="listbox">
       {filteredOptions.length ? filteredOptions.slice(0, 50).map((option, index) => (
         <button
           type="button"
@@ -165,27 +199,134 @@ function StudentSearchPicker({ selectEl }) {
           onClick={() => choose(option)}
         >
           <span>{option.label}</span>
-          {option.value === selectedValue && <Check size={16}/>} 
+          {option.value === selectedValue && <Check size={15}/>} 
         </button>
       )) : <div className="ark-student-search-empty">O‘quvchi topilmadi</div>}
     </div>}
 
     <style>{`
-      .student-search-host{position:relative;min-width:0;width:100%;}
-      .ark-student-combobox{position:relative;width:100%;min-width:0;}
-      .ark-student-search-input{width:100%;height:50px;box-sizing:border-box;border:1px solid #d9dee7;border-radius:12px;background:#fff;color:#111827;padding:0 42px 0 42px;font:inherit;font-size:16px;outline:none;transition:border-color .16s ease,box-shadow .16s ease;background-clip:padding-box;}
-      .ark-student-search-input:hover{border-color:#c7ced9;}
-      .ark-student-search-input:focus{border-color:#e6b400;box-shadow:0 0 0 3px rgba(246,195,0,.16);}
-      .ark-student-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#7b8492;pointer-events:none;z-index:2;}
-      .ark-student-chevron{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;background:transparent;border-radius:9px;color:#4b5563;display:grid;place-items:center;cursor:pointer;z-index:3;}
-      .ark-student-chevron:hover{background:#f5f6f8;}
-      .ark-student-search-menu{position:absolute;left:0;right:0;top:calc(100% + 7px);z-index:1000;max-height:286px;overflow:auto;padding:6px;background:#fff;border:1px solid #dfe3e8;border-radius:13px;box-shadow:0 18px 44px rgba(16,24,40,.16);}
-      .ark-student-search-option{width:100%;min-height:42px;border:0;background:#fff;color:#172033;border-radius:9px;padding:9px 11px;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font:inherit;font-size:15px;cursor:pointer;}
-      .ark-student-search-option:hover,.ark-student-search-option.active{background:#f7f3e6;color:#111827;}
-      .ark-student-search-option[aria-selected="true"]{font-weight:700;}
-      .ark-student-search-option svg{color:#c59600;flex:0 0 auto;}
-      .ark-student-search-empty{padding:14px 12px;color:#8a93a2;font-size:14px;text-align:center;}
-      @media(max-width:720px){.ark-student-search-input{font-size:15px;height:48px}.ark-student-search-menu{max-height:240px}}
+      .student-search-host{
+        position:relative;
+        width:100%;
+        min-width:0;
+      }
+      .ark-student-combobox{
+        position:relative;
+        width:100%;
+        min-width:0;
+      }
+      .reward-form .ark-student-search-input{
+        width:100%;
+        height:39px;
+        box-sizing:border-box;
+        border:1px solid #dfe4ed;
+        border-radius:10px;
+        background:#fff;
+        color:#111827;
+        padding:0 38px 0 38px;
+        font:inherit;
+        font-size:14px;
+        line-height:1;
+        outline:none;
+        transition:border-color .16s ease,box-shadow .16s ease;
+      }
+      .reward-form .ark-student-search-input::placeholder{
+        color:#98a1b1;
+        opacity:1;
+      }
+      .reward-form .ark-student-search-input:hover{
+        border-color:#cbd2dd;
+      }
+      .reward-form .ark-student-search-input:focus{
+        border-color:#d3aa2c;
+        box-shadow:0 0 0 3px rgba(215,169,52,.13);
+      }
+      .ark-student-search-icon{
+        position:absolute;
+        left:12px;
+        top:50%;
+        transform:translateY(-50%);
+        color:#7f8998;
+        pointer-events:none;
+        z-index:2;
+      }
+      .ark-student-chevron{
+        position:absolute;
+        right:2px;
+        top:50%;
+        transform:translateY(-50%);
+        width:34px;
+        height:34px;
+        border:0;
+        background:transparent;
+        border-radius:8px;
+        color:#667085;
+        display:grid;
+        place-items:center;
+        cursor:pointer;
+        z-index:3;
+      }
+      .ark-student-chevron:hover{
+        background:#f5f6f8;
+      }
+      .ark-student-search-menu{
+        position:absolute;
+        left:0;
+        right:0;
+        top:calc(100% + 6px);
+        z-index:1000;
+        max-height:270px;
+        overflow:auto;
+        padding:6px;
+        background:#fff;
+        border:1px solid #dfe3e8;
+        border-radius:11px;
+        box-shadow:0 16px 40px rgba(16,24,40,.15);
+      }
+      .ark-student-search-option{
+        width:100%;
+        min-height:39px;
+        border:0;
+        background:#fff;
+        color:#172033;
+        border-radius:8px;
+        padding:8px 10px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        text-align:left;
+        font:inherit;
+        font-size:13px;
+        cursor:pointer;
+      }
+      .ark-student-search-option:hover,
+      .ark-student-search-option.active{
+        background:#faf6e9;
+        color:#111827;
+      }
+      .ark-student-search-option[aria-selected="true"]{
+        font-weight:700;
+      }
+      .ark-student-search-option svg{
+        color:#b8890a;
+        flex:0 0 auto;
+      }
+      .ark-student-search-empty{
+        padding:13px 11px;
+        color:#8a93a2;
+        font-size:12px;
+        text-align:center;
+      }
+      .reward-form .primary:disabled{
+        opacity:.48;
+        cursor:not-allowed;
+        box-shadow:none;
+      }
+      @media(max-width:720px){
+        .reward-form .ark-student-search-input{font-size:13px;height:39px}
+        .ark-student-search-menu{max-height:235px}
+      }
     `}</style>
   </div>;
 }
@@ -193,15 +334,18 @@ function StudentSearchPicker({ selectEl }) {
 export default function GamificationSearchEnhancer() {
   const [mount, setMount] = useState(null);
   const [selectEl, setSelectEl] = useState(null);
+  const [rewardButton, setRewardButton] = useState(null);
 
   useEffect(() => {
     const locate = () => {
       const form = document.querySelector('.reward-form');
       const select = form?.querySelector('select');
+      const button = form?.querySelector('button.primary');
 
       if (!form || !select) {
         setMount(null);
         setSelectEl(null);
+        setRewardButton(null);
         return;
       }
 
@@ -216,8 +360,10 @@ export default function GamificationSearchEnhancer() {
       select.dataset.arkSearchHidden = '1';
       select.style.display = 'none';
       select.setAttribute('aria-hidden', 'true');
+
       setMount(host);
       setSelectEl(select);
+      setRewardButton(button || null);
     };
 
     locate();
@@ -235,5 +381,8 @@ export default function GamificationSearchEnhancer() {
   }, []);
 
   if (!mount || !selectEl) return null;
-  return createPortal(<StudentSearchPicker selectEl={selectEl}/>, mount);
+  return createPortal(
+    <StudentSearchPicker selectEl={selectEl} rewardButton={rewardButton}/>,
+    mount
+  );
 }
