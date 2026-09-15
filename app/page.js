@@ -9,6 +9,7 @@ import StudentLifecycleEnhancer from './StudentLifecycleEnhancer';
 import ResultsBoardEnhancer from './ResultsBoardEnhancer';
 import ShopCrudEnhancer from './ShopCrudEnhancer';
 import GroupLeaderboardEnhancer from './GroupLeaderboardEnhancer';
+import GamificationSearchEnhancer from './GamificationSearchEnhancer';
 
 export default function Page() {
   const [revision, setRevision] = useState(0);
@@ -28,5 +29,6 @@ export default function Page() {
     <ResultsBoardEnhancer key={`results-board-${revision}`}/>
     <ShopCrudEnhancer key={`shop-crud-${revision}`}/>
     <GroupLeaderboardEnhancer key={`group-leaderboard-${revision}`}/>
+    <GamificationSearchEnhancer key={`gamification-search-${revision}`}/>
   </>;
 }
