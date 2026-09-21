@@ -11,8 +11,10 @@ import {
   Crown,
   LayoutDashboard,
   Medal,
+  Pencil,
   Plus,
   Search,
+  Trash2,
   Trophy,
   UserPlus,
   Users,
@@ -56,12 +58,28 @@ const LEVELS = [
   { level: 10, name: 'Legend', min: 900, max: Infinity },
 ];
 
-function localISODate() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
+function localISODate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function previousDates(endDate, count = 7) {
+  const base = new Date(`${endDate || localISODate()}T12:00:00`);
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(base);
+    date.setDate(base.getDate() - (count - 1 - index));
+    return localISODate(date);
+  });
+}
+
+function shortDay(value) {
+  try {
+    return new Intl.DateTimeFormat('uz-UZ', { day: '2-digit', month: '2-digit' }).format(new Date(`${value}T12:00:00`));
+  } catch {
+    return value.slice(5);
+  }
 }
 
 function normalizeState(raw) {
@@ -159,6 +177,8 @@ export default function ArkTrackerV2() {
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [studentGroupPreset, setStudentGroupPreset] = useState('');
+  const [editingGroup, setEditingGroup] = useState('');
+  const [editingStudent, setEditingStudent] = useState(null);
 
   useEffect(() => {
     const loaded = loadState();
@@ -348,6 +368,91 @@ export default function ArkTrackerV2() {
     setShowAddStudent(true);
   };
 
+  const renameGroup = (oldName, newName) => {
+    const clean = String(newName || '').trim().replace(/\s+/g, ' ');
+    if (!clean || clean === oldName) {
+      setEditingGroup('');
+      return;
+    }
+    if (groups.some(group => group !== oldName && group.toLowerCase() === clean.toLowerCase())) {
+      window.alert('Bu nomdagi guruh allaqachon mavjud.');
+      return;
+    }
+
+    setState(previous => {
+      const nextMeta = { ...(previous.groupMeta || {}) };
+      if (nextMeta[oldName]) {
+        nextMeta[clean] = { ...nextMeta[oldName] };
+        delete nextMeta[oldName];
+      }
+      return {
+        ...previous,
+        groups: (previous.groups || []).map(group => group === oldName ? clean : group),
+        students: (previous.students || []).map(student => student.group === oldName ? { ...student, group: clean } : student),
+        groupMeta: nextMeta,
+      };
+    });
+
+    if (selectedGroup === oldName) setSelectedGroup(clean);
+    if (leaderboardGroup === oldName) setLeaderboardGroup(clean);
+    setEditingGroup('');
+  };
+
+  const deleteGroup = group => {
+    const count = activeStudents.filter(student => student.group === group).length;
+    const message = count
+      ? `"${group}" guruhini va undagi ${count} ta o‘quvchini o‘chirasizmi? Bu amal ularning kunlik yozuvlarini ham o‘chiradi.`
+      : `"${group}" guruhini o‘chirasizmi?`;
+    if (!window.confirm(message)) return;
+
+    setState(previous => {
+      const deletedIds = new Set((previous.students || []).filter(student => student.group === group).map(student => student.id));
+      const nextRecords = { ...(previous.records || {}) };
+      deletedIds.forEach(id => delete nextRecords[id]);
+      const nextMeta = { ...(previous.groupMeta || {}) };
+      delete nextMeta[group];
+
+      return {
+        ...previous,
+        groups: (previous.groups || []).filter(item => item !== group),
+        students: (previous.students || []).filter(student => student.group !== group),
+        records: nextRecords,
+        groupMeta: nextMeta,
+        coinTransactions: (previous.coinTransactions || []).filter(item => !deletedIds.has(item.studentId)),
+        xpTransactions: (previous.xpTransactions || []).filter(item => !deletedIds.has(item.studentId)),
+      };
+    });
+
+    if (selectedGroup === group) setSelectedGroup('');
+    if (leaderboardGroup === group) setLeaderboardGroup('all');
+  };
+
+  const editStudent = ({ id, name, group }) => {
+    const cleanName = String(name || '').trim();
+    if (!id || !cleanName || !group) return;
+    setState(previous => ({
+      ...previous,
+      students: (previous.students || []).map(student => student.id === id ? { ...student, name: cleanName, group } : student),
+    }));
+    setEditingStudent(null);
+  };
+
+  const deleteStudent = student => {
+    if (!student?.id) return;
+    if (!window.confirm(`"${student.name}" o‘quvchisini o‘chirasizmi? Uning kunlik tarixi ham o‘chadi.`)) return;
+    setState(previous => {
+      const nextRecords = { ...(previous.records || {}) };
+      delete nextRecords[student.id];
+      return {
+        ...previous,
+        students: (previous.students || []).filter(item => item.id !== student.id),
+        records: nextRecords,
+        coinTransactions: (previous.coinTransactions || []).filter(item => item.studentId !== student.id),
+        xpTransactions: (previous.xpTransactions || []).filter(item => item.studentId !== student.id),
+      };
+    });
+  };
+
   const leaderboardStudents = useMemo(() => {
     return activeStudents
       .filter(student => leaderboardGroup === 'all' || student.group === leaderboardGroup)
@@ -436,6 +541,10 @@ export default function ArkTrackerV2() {
               state={state}
               onAddGroup={() => setShowAddGroup(true)}
               onAddStudent={openAddStudent}
+              onEditGroup={setEditingGroup}
+              onDeleteGroup={deleteGroup}
+              onEditStudent={setEditingStudent}
+              onDeleteStudent={deleteStudent}
             />
           )}
 
@@ -463,17 +572,37 @@ export default function ArkTrackerV2() {
 
       {showAddGroup && <AddGroupModal onClose={() => setShowAddGroup(false)} onAdd={addGroup}/>}
       {showAddStudent && <AddStudentModal groups={groups} initialGroup={studentGroupPreset} onClose={() => setShowAddStudent(false)} onAdd={addStudent}/>}
+      {editingGroup && <EditGroupModal group={editingGroup} onClose={() => setEditingGroup('')} onSave={renameGroup}/>}
+      {editingStudent && <EditStudentModal student={editingStudent} groups={groups} onClose={() => setEditingStudent(null)} onSave={editStudent}/>}
     </main>
   );
 }
 
 function Overview({ stats, groups, students, state, selectedDate, setSelectedDate, setPage }) {
   const leaders = [...students].sort((a, b) => Number(b.xp || 0) - Number(a.xp || 0) || Number(b.pts || 0) - Number(a.pts || 0)).slice(0, 5);
+  const days = previousDates(selectedDate, 7);
+
+  const trend = days.map(date => {
+    const dayRecords = students.map(student => state.records?.[student.id]?.[date] || {});
+    const present = dayRecords.filter(record => record.attendance === 'present').length;
+    const absent = dayRecords.filter(record => record.attendance === 'absent').length;
+    const marked = present + absent;
+    const overallValues = dayRecords.map(record => clampOverall(record.overall)).filter(value => value !== null);
+    const overall = average(overallValues);
+
+    return {
+      date,
+      attendance: marked ? Math.round((present / marked) * 100) : 0,
+      attendanceLabel: marked ? `${present}/${marked}` : '—',
+      mastery: overallValues.length ? Math.round(overall * 10) : 0,
+      masteryLabel: overallValues.length ? overall.toFixed(1) : '—',
+    };
+  });
 
   return (
     <div className="st-stack">
       <section className="st-overview-head">
-        <div><span>BUGUNGI NAZORAT</span><h2>Hammasi bir joyda</h2><p>Keldi-kelmadi, uyga vazifa, Overall, Coin va XP.</p></div>
+        <div><span>BUGUNGI NAZORAT</span><h2>Hammasi bir joyda</h2><p>Davomat, o‘zlashtirish, Coin, XP va level progress.</p></div>
         <label className="st-date-field"><CalendarDays size={16}/><input type="date" value={selectedDate} onChange={event => setSelectedDate(event.target.value)}/></label>
       </section>
 
@@ -485,11 +614,30 @@ function Overview({ stats, groups, students, state, selectedDate, setSelectedDat
         <Stat icon={Zap} label="XP" value={stats.xp} tone="coral"/>
       </section>
 
+      <section className="st-chart-grid">
+        <TrendChart
+          eyebrow="DAVOMAT"
+          title="Kunlik davomat"
+          subtitle="Keldi / belgilangan o‘quvchilar"
+          values={trend.map(item => ({ date: item.date, value: item.attendance, label: item.attendanceLabel }))}
+          suffix="%"
+          tone="green"
+        />
+        <TrendChart
+          eyebrow="O‘ZLASHTIRISH"
+          title="Kunlik o‘zlashtirish"
+          subtitle="Overall natijasining kunlik o‘rtachasi"
+          values={trend.map(item => ({ date: item.date, value: item.mastery, label: item.masteryLabel }))}
+          suffix="%"
+          tone="violet"
+        />
+      </section>
+
       <section className="st-grid-two">
         <div className="st-panel">
           <div className="st-panel-head"><div><span>GURUHLAR</span><h3>Faol guruhlar</h3></div><button type="button" onClick={() => setPage('groups')}>Barchasi</button></div>
           <div className="st-group-mini-list">
-            {groups.map(group => {
+            {groups.slice(0, 5).map(group => {
               const list = students.filter(student => student.group === group);
               const xp = list.reduce((sum, student) => sum + Number(student.xp || 0), 0);
               return (
@@ -520,12 +668,44 @@ function Overview({ stats, groups, students, state, selectedDate, setSelectedDat
         </div>
       </section>
 
+      <section className="st-panel st-levels-panel">
+        <div className="st-panel-head"><div><span>10 LEVEL</span><h3>Level tizimi</h3></div><small>Har 100 XP’da yangi bosqich</small></div>
+        <div className="st-level-grid">
+          {LEVELS.map(level => (
+            <article key={level.level}>
+              <span>Level {level.level}</span>
+              <strong>{level.name}</strong>
+              <small>{level.level === 1 ? '0 XP dan' : `${level.min} XP dan`}</small>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <button type="button" className="st-daily-cta" onClick={() => setPage('daily')}>
         <span><Check size={22}/></span>
         <div><strong>Bugungi baholashni ochish</strong><small>Har bir o‘quvchini bir necha soniyada belgilang.</small></div>
         <b>Ochish</b>
       </button>
     </div>
+  );
+}
+
+function TrendChart({ eyebrow, title, subtitle, values, suffix, tone }) {
+  return (
+    <section className={`st-panel st-trend-card tone-${tone}`}>
+      <div className="st-panel-head">
+        <div><span>{eyebrow}</span><h3>{title}</h3><p>{subtitle}</p></div>
+      </div>
+      <div className="st-bars" role="img" aria-label={title}>
+        {values.map(item => (
+          <div className="st-bar-item" key={item.date}>
+            <span className="st-bar-value">{item.label}{item.label !== '—' && suffix === '%' && item.label.includes('/') ? '' : item.label !== '—' && suffix === '%' ? '' : ''}</span>
+            <div className="st-bar-track"><i style={{ height: `${Math.max(item.value ? 8 : 0, Math.min(100, item.value))}%` }}/></div>
+            <small>{shortDay(item.date)}</small>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -624,11 +804,11 @@ function DailyControl({
   );
 }
 
-function GroupsPage({ groups, students, state, onAddGroup, onAddStudent }) {
+function GroupsPage({ groups, students, state, onAddGroup, onAddStudent, onEditGroup, onDeleteGroup, onEditStudent, onDeleteStudent }) {
   return (
     <div className="st-stack">
       <section className="st-section-title">
-        <div><span>GURUHLAR</span><h2>Guruh boshqaruvi</h2><p>Faqat kerakli guruh va o‘quvchilar.</p></div>
+        <div><span>GURUHLAR</span><h2>Guruh boshqaruvi</h2><p>Guruh va o‘quvchilarni shu yerning o‘zida tahrirlang.</p></div>
         <button type="button" className="st-primary-btn" onClick={onAddGroup}><Plus size={16}/> Guruh qo‘shish</button>
       </section>
 
@@ -644,16 +824,30 @@ function GroupsPage({ groups, students, state, onAddGroup, onAddStudent }) {
                 <div><small>GURUH</small><h3>{group}</h3></div>
                 <strong>{list.length}</strong>
               </div>
+
+              <div className="st-group-actions">
+                <button type="button" onClick={() => onEditGroup(group)}><Pencil size={14}/> Tahrirlash</button>
+                <button type="button" className="danger" onClick={() => onDeleteGroup(group)}><Trash2 size={14}/> O‘chirish</button>
+              </div>
+
               <div className="st-group-stats">
                 <span><Zap size={14}/>{totalXp} XP</span>
                 <span><Coins size={14}/>{totalCoins}</span>
               </div>
-              <div className="st-group-students">
-                {list.slice(0, 6).map(student => <span key={student.id}>{student.name}</span>)}
-                {list.length > 6 && <span>+{list.length - 6} ta</span>}
-                {!list.length && <span>Hali o‘quvchi yo‘q</span>}
+
+              <div className="st-group-student-list">
+                {list.map(student => (
+                  <div key={student.id}>
+                    <span className="st-avatar">{student.name[0]?.toUpperCase()}</span>
+                    <div><strong>{student.name}</strong><small>{levelFor(student.xp).name} · {student.xp || 0} XP</small></div>
+                    <button type="button" title="Tahrirlash" onClick={() => onEditStudent(student)}><Pencil size={14}/></button>
+                    <button type="button" className="danger" title="O‘chirish" onClick={() => onDeleteStudent(student)}><Trash2 size={14}/></button>
+                  </div>
+                ))}
+                {!list.length && <span className="st-group-empty">Hali o‘quvchi yo‘q</span>}
               </div>
-              <button type="button" onClick={() => onAddStudent(group)}><UserPlus size={15}/> O‘quvchi qo‘shish</button>
+
+              <button type="button" className="st-add-student-btn" onClick={() => onAddStudent(group)}><UserPlus size={15}/> O‘quvchi qo‘shish</button>
             </article>
           );
         })}
@@ -790,6 +984,29 @@ function AddStudentModal({ groups, initialGroup, onClose, onAdd }) {
       <label className="st-field"><span>Ism</span><input autoFocus value={name} onChange={event => setName(event.target.value)} placeholder="O‘quvchi ismi"/></label>
       <label className="st-field"><span>Guruh</span><select value={group} onChange={event => setGroup(event.target.value)}>{groups.map(item => <option key={item} value={item}>{item}</option>)}</select></label>
       <button type="button" className="st-primary-btn full" disabled={!name.trim() || !group} onClick={() => onAdd({ name, group })}>Saqlash</button>
+    </Modal>
+  );
+}
+
+function EditGroupModal({ group, onClose, onSave }) {
+  const [name, setName] = useState(group);
+  return (
+    <Modal onClose={onClose} eyebrow="GURUH" title="Guruhni tahrirlash">
+      <label className="st-field"><span>Guruh nomi</span><input autoFocus value={name} onChange={event => setName(event.target.value)} /></label>
+      <button type="button" className="st-primary-btn full" disabled={!name.trim()} onClick={() => onSave(group, name)}>Saqlash</button>
+    </Modal>
+  );
+}
+
+function EditStudentModal({ student, groups, onClose, onSave }) {
+  const [name, setName] = useState(student.name || '');
+  const [group, setGroup] = useState(student.group || groups[0] || '');
+
+  return (
+    <Modal onClose={onClose} eyebrow="O‘QUVCHI" title="O‘quvchini tahrirlash">
+      <label className="st-field"><span>Ism</span><input autoFocus value={name} onChange={event => setName(event.target.value)} /></label>
+      <label className="st-field"><span>Guruh</span><select value={group} onChange={event => setGroup(event.target.value)}>{groups.map(item => <option key={item} value={item}>{item}</option>)}</select></label>
+      <button type="button" className="st-primary-btn full" disabled={!name.trim() || !group} onClick={() => onSave({ id: student.id, name, group })}>Saqlash</button>
     </Modal>
   );
 }
