@@ -48,3 +48,58 @@ html,body{background:var(--bg)!important;color:var(--text)}
 
 @media(max-width:1000px){.auth-page{grid-template-columns:1fr;gap:28px}.auth-brand-panel{display:none}.auth-card{justify-self:center}.portal-kpis{grid-template-columns:repeat(2,1fr)}.manager-add-grid{grid-template-columns:1fr 1fr}.shop-manager-add{align-items:stretch;flex-direction:column}.access-fields{grid-template-columns:1fr}}
 @media(max-width:700px){.role-portal,.student-portal{padding:18px 12px 90px}.portal-head,.student-hero{flex-direction:column}.portal-kpis,.student-wallet{grid-template-columns:1fr}.auth-page{padding:20px}.auth-card{padding:24px}.session-dock{right:10px;bottom:10px}.access-button{padding:0 10px}.session-user b{max-width:90px}.manager-add-grid{grid-template-columns:1fr}.access-panel{padding:18px}.status-actions{flex-direction:column}.student-shop-grid{grid-template-columns:1fr 1fr}}
+
+
+/* Tracker session dock: keep owner controls inside the sidebar and prevent overlap. */
+@media (min-width:901px){
+  .ark-role-shell.role-owner .session-dock,
+  .ark-role-shell.role-admin .session-dock,
+  .ark-role-shell.role-teacher .session-dock{
+    left:12px!important;
+    right:auto!important;
+    bottom:12px!important;
+    width:181px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:6px!important;
+    z-index:70!important;
+  }
+  .ark-role-shell.role-owner .access-button,
+  .ark-role-shell.role-admin .access-button,
+  .ark-role-shell.role-teacher .access-button{
+    width:100%!important;
+    height:38px!important;
+    min-height:38px!important;
+    padding:0 9px!important;
+    box-shadow:none!important;
+    justify-content:center!important;
+  }
+  .ark-role-shell.role-owner .session-user,
+  .ark-role-shell.role-admin .session-user,
+  .ark-role-shell.role-teacher .session-user{
+    width:100%!important;
+    padding:6px 7px!important;
+    box-shadow:none!important;
+  }
+  .ark-role-shell.role-owner .session-user b,
+  .ark-role-shell.role-admin .session-user b,
+  .ark-role-shell.role-teacher .session-user b{
+    max-width:92px!important;
+  }
+  .st-sidebar{padding-bottom:116px!important}
+}
+@media (max-width:900px){
+  .ark-role-shell.role-owner .session-dock,
+  .ark-role-shell.role-admin .session-dock,
+  .ark-role-shell.role-teacher .session-dock{
+    right:10px!important;
+    left:auto!important;
+    bottom:78px!important;
+    flex-direction:row!important;
+    width:auto!important;
+  }
+  .ark-role-shell.role-owner .access-button,
+  .ark-role-shell.role-admin .access-button,
+  .ark-role-shell.role-teacher .access-button{display:none!important}
+}
