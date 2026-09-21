@@ -12,6 +12,7 @@ import './reports.css';
 import './student-lifecycle.css';
 import './uzbek-upgrade.css';
 import './group-leaderboard.css';
+import './simple-tracker.css';
 import AuthGate from './AuthGate';
 import UzbekUI from './UzbekUI';
 
