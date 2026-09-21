@@ -28,7 +28,7 @@ const LAST_PAGE_KEY = 'ark-tracker-simple-page';
 const seed = {
   students: [],
   records: {},
-  groups: ['IELTS', 'CEFR'],
+  groups: [],
   deletedGroups: [],
   groupMeta: {},
   coinTransactions: [],
@@ -257,31 +257,48 @@ export default function ArkTrackerV2() {
     });
   };
 
-  const awardCoins = (studentId, amount) => {
-    const delta = Number(amount || 0);
-    if (!delta) return;
+  const awardReward = (studentId, amount, type = 'coin') => {
+    const delta = Math.max(0, Math.round(Number(amount || 0)));
+    if (!delta) return false;
+
     setState(previous => {
       const student = (previous.students || []).find(item => item.id === studentId);
       if (!student) return previous;
-      const current = Number(student.pts || 0);
-      const next = Math.max(0, current + delta);
-      const applied = next - current;
-      if (!applied) return previous;
+
+      const now = new Date().toISOString();
+
+      if (type === 'xp') {
+        return {
+          ...previous,
+          students: (previous.students || []).map(item =>
+            item.id === studentId ? { ...item, xp: Math.max(0, Number(item.xp || 0) + delta) } : item,
+          ),
+          xpTransactions: [{
+            id: crypto.randomUUID(),
+            studentId,
+            amount: delta,
+            reason: 'Teacher manual XP',
+            createdAt: now,
+          }, ...(previous.xpTransactions || [])].slice(0, 1000),
+        };
+      }
 
       return {
         ...previous,
         students: (previous.students || []).map(item =>
-          item.id === studentId ? { ...item, pts: next } : item,
+          item.id === studentId ? { ...item, pts: Math.max(0, Number(item.pts || 0) + delta) } : item,
         ),
         coinTransactions: [{
           id: crypto.randomUUID(),
           studentId,
-          amount: applied,
-          reason: 'Teacher reward',
-          createdAt: new Date().toISOString(),
+          amount: delta,
+          reason: 'Teacher manual coin',
+          createdAt: now,
         }, ...(previous.coinTransactions || [])].slice(0, 1000),
       };
     });
+
+    return true;
   };
 
   const addGroup = name => {
@@ -408,7 +425,7 @@ export default function ArkTrackerV2() {
               query={query}
               setQuery={setQuery}
               updateDailyRecord={updateDailyRecord}
-              awardCoins={awardCoins}
+              awardReward={awardReward}
             />
           )}
 
@@ -523,7 +540,7 @@ function DailyControl({
   query,
   setQuery,
   updateDailyRecord,
-  awardCoins,
+  awardReward,
 }) {
   const records = students.map(student => state.records?.[student.id]?.[selectedDate] || {});
   const markedAttendance = records.filter(record => record.attendance === 'present' || record.attendance === 'absent').length;
@@ -558,7 +575,14 @@ function DailyControl({
             <article className="st-student-row" key={student.id}>
               <div className="st-student-main">
                 <span className="st-avatar large">{student.name[0]?.toUpperCase()}</span>
-                <div><strong>{student.name}</strong><small>{level.name} · {student.xp || 0} XP · {student.pts || 0} 🪙</small></div>
+                <div className="st-student-copy">
+                  <strong>{student.name}</strong>
+                  <small>{student.xp || 0} XP · {student.pts || 0} 🪙</small>
+                  <div className="st-student-level">
+                    <span>Level {level.level} · {level.name}</span>
+                    <div className="st-level-progress"><i style={{ width: `${levelProgress(student.xp)}%` }}/></div>
+                  </div>
+                </div>
               </div>
 
               <div className="st-control-block">
@@ -585,12 +609,7 @@ function DailyControl({
                 </select>
               </label>
 
-              <div className="st-coin-block">
-                <span>Coin</span>
-                <div>
-                  {[1,3,5].map(value => <button key={value} type="button" onClick={() => awardCoins(student.id, value)}>+{value}</button>)}
-                </div>
-              </div>
+              <RewardControl studentId={student.id} onReward={awardReward}/>
             </article>
           );
         })}
@@ -700,6 +719,41 @@ function Leaderboard({ groups, selectedGroup, setSelectedGroup, students }) {
           </section>
         </>
       ) : <div className="st-panel"><Empty text="Reyting uchun o‘quvchi yo‘q."/></div>}
+    </div>
+  );
+}
+
+function RewardControl({ studentId, onReward }) {
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState('coin');
+
+  const submit = () => {
+    const value = Math.max(0, Math.round(Number(amount || 0)));
+    if (!value) return;
+    const applied = onReward(studentId, value, type);
+    if (applied !== false) setAmount('');
+  };
+
+  return (
+    <div className="st-reward-control">
+      <span>Coin / XP</span>
+      <div className="st-reward-line">
+        <input
+          type="number"
+          min="1"
+          inputMode="numeric"
+          value={amount}
+          onChange={event => setAmount(event.target.value)}
+          onKeyDown={event => { if (event.key === 'Enter') submit(); }}
+          placeholder="0"
+          aria-label="Mukofot miqdori"
+        />
+        <select value={type} onChange={event => setType(event.target.value)} aria-label="Mukofot turi">
+          <option value="coin">Coin</option>
+          <option value="xp">XP</option>
+        </select>
+        <button type="button" disabled={!Number(amount)} onClick={submit}>Berish</button>
+      </div>
     </div>
   );
 }
