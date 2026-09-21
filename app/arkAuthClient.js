@@ -216,10 +216,15 @@ export function formatMoney(value) {
 }
 
 export function levelFor(xp) {
-  const n = Number(xp || 0);
-  if (n >= 5000) return 'Diamond';
-  if (n >= 3000) return 'Gold';
-  if (n >= 1500) return 'Silver';
-  if (n >= 500) return 'Bronze';
+  const n = Math.max(0, Number(xp || 0));
+  if (n >= 900) return 'Legend';
+  if (n >= 800) return 'Champion';
+  if (n >= 700) return 'Elite';
+  if (n >= 600) return 'Master';
+  if (n >= 500) return 'Diamond';
+  if (n >= 400) return 'Platinum';
+  if (n >= 300) return 'Gold';
+  if (n >= 200) return 'Silver';
+  if (n >= 100) return 'Bronze';
   return 'Starter';
 }
