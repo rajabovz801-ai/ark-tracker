@@ -593,6 +593,8 @@ function DailyControl({
                 </div>
               </div>
 
+              <RewardControl studentId={student.id} onReward={awardReward}/>
+
               <div className="st-control-block">
                 <span>Uyga vazifa</span>
                 <div className="st-toggle-pair">
@@ -608,8 +610,6 @@ function DailyControl({
                   {[1,2,3,4,5,6,7,8,9,10].map(value => <option key={value} value={value}>{value}/10</option>)}
                 </select>
               </label>
-
-              <RewardControl studentId={student.id} onReward={awardReward}/>
             </article>
           );
         })}
