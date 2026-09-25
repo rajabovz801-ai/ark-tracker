@@ -146,3 +146,5 @@
  .mobile-group-icon{width:34px;height:34px}
  .mobile-group-head .badge{padding:5px 6px}
 }
+
+.login-brand-mark{width:60px;height:60px;display:grid;place-items:center;background:rgba(224,189,131,.12);border:1px solid rgba(224,189,131,.4);border-radius:16px;color:#e8c88b}
