@@ -26,8 +26,13 @@ export async function adminAction(req:Request,token:string,body:any){
   const name=s(body.name),groupIds=[...new Set((Array.isArray(body.groupIds)?body.groupIds:[]).filter(isUuid))] as string[];
   if(name.length<2||name.length>120||!groupIds.length)throw new ApiError('Ism va guruhni tanlang');
   const student=(await mutate('sa_students',token,'POST',{name}))[0];
-  try{for(const group_id of groupIds)await mutate('sa_memberships',token,'POST',{group_id,student_id:student.id});}
-  catch(e){await rest('sa_students?id=eq.'+student.id,token,{method:'DELETE'}).catch(()=>null);throw e;}
+  try{
+   for(const group_id of groupIds){
+    await mutate('sa_memberships',token,'POST',{group_id,student_id:student.id});
+    const sessions=await rest('sa_sessions?select=id&group_id=eq.'+group_id+'&status=eq.active',token);
+    for(const session of sessions)await rest('sa_attendance?on_conflict=session_id,student_id',token,{method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify({session_id:session.id,student_id:student.id})});
+   }
+  }catch(e){await rest('sa_memberships?student_id=eq.'+student.id,token,{method:'DELETE'}).catch(()=>null);await rest('sa_students?id=eq.'+student.id,token,{method:'DELETE'}).catch(()=>null);throw e;}
   return student;
  }
  if(action==='editStudent'){
