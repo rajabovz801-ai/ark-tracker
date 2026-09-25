@@ -26,7 +26,7 @@ begin
   from public.sa_sessions s join public.sa_groups g on g.id=s.group_id
   where s.status='active' and not g.archived and s.lesson_date=(now() at time zone 'Asia/Tashkent')::date;
   return jsonb_build_object('ok',true,'sessions',v_sessions);
-end $function$
+end $function$;
 
 CREATE OR REPLACE FUNCTION public.sa_kiosk_event(p_token text, p_session_id uuid, p_student_id uuid, p_action text)
  RETURNS jsonb
@@ -72,7 +72,7 @@ begin
     values(p_session_id,p_student_id,'kiosk',v_device,p_action,
       jsonb_build_object('at',v_t));
   return jsonb_build_object('ok',true,'action',p_action,'timestamp',v_t);
-end $function$
+end $function$;
 
 revoke all on function public.sa_kiosk_snapshot(text) from public; grant execute on function public.sa_kiosk_snapshot(text) to anon,authenticated;
 revoke all on function public.sa_kiosk_event(text,uuid,uuid,text) from public; grant execute on function public.sa_kiosk_event(text,uuid,uuid,text) to anon,authenticated;
