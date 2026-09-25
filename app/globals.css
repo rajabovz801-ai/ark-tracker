@@ -20,10 +20,7 @@
 
 
 /* Smart Attendance v1.1: softly faded grid, compact identity, touch-first layouts. */
-.grid-wrapper{min-height:100%;width:100%;position:relative;isolation:isolate;background-color:#f8fafc}
-.grid-background{position:absolute;top:0;right:0;bottom:0;left:0;z-index:0;pointer-events:none;background-image:linear-gradient(to right,#e2e8f0 1px,transparent 1px),linear-gradient(to bottom,#e2e8f0 1px,transparent 1px);background-size:20px 30px;-webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 0%,#000 60%,transparent 100%);mask-image:radial-gradient(ellipse 70% 60% at 50% 0%,#000 60%,transparent 100%)}
 .workspace-content{position:relative;z-index:1}
-.admin-main{background:#f8fafc}
 .admin-sidebar{background:linear-gradient(165deg,#162f49,#1f3a55)}
 .sidebar-symbol{display:inline-grid;place-items:center;flex:none;width:42px;height:42px;color:#e0bd83;background:rgba(223,191,136,.12);border:1px solid rgba(223,191,136,.3);border-radius:13px}
 .sidebar-brand strong{font-size:14px;letter-spacing:0}
@@ -33,13 +30,12 @@
 .sidebar-bottom small{font-size:10px;margin-top:10px}
 .mobile-header-brand,.mobile-bottom-nav,.mobile-group-list,.mobile-student-list,.mobile-live-list{display:none}
 .content-card,.stat-card,.entity-card,.table-panel,.report-preview,.side-panel{box-shadow:0 3px 18px rgba(17,40,66,.025)}
-.terminal-wrap.grid-wrapper{background:#f8fafc}
 .terminal-wrap .terminal-top,.terminal-wrap .terminal-main,.terminal-wrap .terminal-footer{position:relative;z-index:1}
 .terminal-mark{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:#182d45;color:#dec18e;box-shadow:0 5px 15px rgba(24,45,69,.12)}
 .terminal-logo b{font-size:20px;letter-spacing:-.35px}
 .terminal-logo small{letter-spacing:1px}
-.terminal-wrap .terminal-main{background:rgba(255,255,255,.92);border-radius:17px;margin-top:15px;padding:27px 15px 15px}
-.terminal-wrap .terminal-footer{background:rgba(255,255,255,.92);margin-top:4px}
+.terminal-wrap .terminal-main{border-radius:17px;margin-top:15px;padding:27px 15px 15px}
+.terminal-wrap .terminal-footer{margin-top:4px}
 .terminal-group-card{border-radius:15px;box-shadow:0 5px 16px rgba(24,45,69,.045);transition:transform .15s ease,border-color .15s ease}
 .terminal-group-card:active{transform:scale(.985)}
 .terminal-student{min-height:66px}
@@ -59,7 +55,7 @@
  .mobile-header-brand small{font-size:10px;color:#758399}
  .top-user{gap:0}
  .top-user .admin-avatar{width:38px;height:38px}
- .workspace.grid-wrapper{max-width:none;min-height:calc(100dvh - 68px);padding:20px 14px calc(110px + env(safe-area-inset-bottom,0px))}
+ .workspace{max-width:none;min-height:calc(100dvh - 68px);padding:20px 14px calc(110px + env(safe-area-inset-bottom,0px))}
  .workspace-content{min-width:0}
  .mobile-bottom-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;position:fixed;bottom:0;left:0;right:0;z-index:45;min-height:69px;padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.98);border-top:1px solid #dce4ee;box-shadow:0 -8px 24px rgba(17,43,70,.05);backdrop-filter:blur(14px)}
  .bottom-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:52px;min-width:0;border:0;background:transparent;color:#7b8a9c;border-radius:10px}
