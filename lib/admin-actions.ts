@@ -41,6 +41,7 @@ export async function adminAction(req:Request,token:string,body:any){
   if(body.late_grace_min!==undefined)patch.late_grace_min=Math.min(120,Math.max(0,Number(body.late_grace_min)||0));
   if(Array.isArray(body.weekdays))patch.weekdays=body.weekdays.filter((d:unknown)=>Number.isInteger(d)&&Number(d)>=0&&Number(d)<=6);
   if(typeof body.archived==='boolean')patch.archived=body.archived;
+  if(body.archived===true){const active=await rest('sa_sessions?select=id&group_id=eq.'+body.id+'&status=eq.active&limit=1',token);if(active.length)throw new ApiError('Guruhni arxivlashdan oldin faol darsni yakunlang yoki o‘chiring');}
   if(!Object.keys(patch).length)throw new ApiError('O‘zgartirish mavjud emas');
   return mutate('sa_groups',token,'PATCH',patch,'?id=eq.'+body.id);
  }
