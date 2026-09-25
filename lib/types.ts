@@ -1,0 +1,8 @@
+export type Group={id:string;name:string;teacher:string;starts_at:string;ends_at:string;weekdays:number[];late_grace_min:number;archived:boolean;};
+export type Student={id:string;name:string;archived:boolean;};
+export type Membership={group_id:string;student_id:string;active:boolean;};
+export type Session={id:string;group_id:string;lesson_date:string;planned_start:string;planned_end:string;status:'active'|'closed';opened_at:string;closed_at:string|null;};
+export type Attendance={session_id:string;student_id:string;checked_in:string|null;checked_out:string|null;late_min:number;status:'pending'|'present'|'absent';note:string;absence_reason:string;updated_at:string;};
+export type Event={id:number;session_id:string|null;student_id:string|null;actor_type:string;action:string;created_at:string;};
+export type Device={id:string;label:string;active:boolean;last_seen:string|null;created_at:string;};
+export type AdminData={groups:Group[];students:Student[];memberships:Membership[];sessions:Session[];attendance:Attendance[];events:Event[];devices:Device[];admin:{user_id:string;display_name:string;role:string};};
