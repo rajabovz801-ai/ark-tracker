@@ -32,3 +32,24 @@ The Vercel project is ark-tracker, connected to the same GitHub repository. Do n
 
 ## Known MVP limitations
 The admin dashboard polls every five seconds instead of using a persistent Realtime socket. Telegram notifications, advanced timetable automation, face matching, offline attendance and background push notifications are intentionally excluded from MVP 1.0. Full RLS and RPC integration should be smoke-tested with a real administrator and device token before use with learners. Real mobile UI testing is needed on the Note 10 hardware.
+
+
+## Management update: daily attendance and safe deletion
+
+The administrator interface now provides Add, Edit, Archive and Delete for groups/students. Names, memberships and schedules remain editable on both desktop and mobile. Confirm destructive group/student actions by typing the exact name. Students/groups with historical attendance or recoverable backups are archived instead of permanently removed. Existing memberships remain available upon restoration. A currently checked-in student must be checked out before deletion, and an active group lesson must be closed before group removal.
+
+On the Davomat page, use Dars qo‘shish to create today's or a past lesson, edit its date/time, add an existing group student to its roster, correct individual times, close the session, or delete it after confirmation. Past lessons are created closed with initially absent students until an administrator makes any corrections. On Hisobotlar, choose a date and optionally a group, then delete that day's lesson sessions by typing the date. Each deleted lesson's full roster, arrival/departure timestamps and event log are snapshotted transactionally in the administrator-only deletion audit. Under O‘chirilgan darslar tarixi, choose Tiklash to recover a deleted lesson and its attendance. Restored backups remain visible in the audit log. A restore cannot proceed if the original group or students are missing or an existing lesson conflicts.
+
+### Migration dependency order for a fresh database
+
+Apply manually in the following order; do not assume alphabetical names are chronological:
+
+1. 20260925_attendance_schema.sql
+2. 20260925_attendance_rpcs.sql
+3. 20260925_attendance_management.sql
+4. 20260925_kiosk_archive_filters.sql
+5. 20260926_preserve_archive_memberships.sql
+6. 20260926_student_active_checkout_guard.sql
+7. 20260926_attendance_audit_restore.sql
+
+These changes have already been applied to the connected production Supabase database. All database integration tests use explicit transactions rolled back afterward; existing users and original Tracker data were not deleted. Admin operations remain protected by Supabase Auth and RLS. Kiosk check-in/out continues to require a revocable device token.
