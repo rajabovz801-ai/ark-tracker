@@ -11,7 +11,7 @@ export async function loadAdmin(req:Request){
   rest('sa_sessions?select=*&lesson_date=gte.'+from+'&lesson_date=lte.'+to+'&order=opened_at.desc&limit=500',token),
   rest('sa_events?select=id,session_id,student_id,actor_type,action,created_at&order=created_at.desc&limit=80',token),
   rest('sa_devices?select=id,label,active,last_seen,created_at&order=created_at.desc',token),
-  rest('sa_deleted_records?select=id,kind,target_id,group_id,lesson_date,deleted_at,snapshot&order=deleted_at.desc&limit=50',token)
+  rest('sa_deleted_records?select=id,kind,target_id,group_id,lesson_date,deleted_at,restored_at,restored_by,snapshot&order=deleted_at.desc&limit=50',token)
  ]);
  const ids=(sessions as {id:string}[]).map(s=>s.id);
  const attendance=ids.length?await rest('sa_attendance?select=*&session_id=in.('+ids.join(',')+')&limit=5000',token):[];
