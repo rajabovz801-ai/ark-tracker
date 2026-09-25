@@ -21,6 +21,10 @@ export async function adminAction(req:Request,token:string,body:any){
    if(!isUuid(body.sessionId)||!isUuid(body.studentId))throw new ApiError('Dars yoki o‘quvchi noto‘g‘ri');
    return rpc('sa_add_lesson_student',{p_session_id:body.sessionId,p_student_id:body.studentId});
  }
+ if(action==='restoreLesson'){
+   if(!Number.isSafeInteger(body.auditId)||body.auditId<1)throw new ApiError('Audit yozuvi noto‘g‘ri');
+   return rpc('sa_restore_lesson',{p_deleted_id:body.auditId});
+ }
  if(action==='deleteLesson'){
    if(!isUuid(body.sessionId))throw new ApiError('Dars noto‘g‘ri');
    return rpc('sa_delete_lesson',{p_id:body.sessionId});
