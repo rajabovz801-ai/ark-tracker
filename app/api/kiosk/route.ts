@@ -1,5 +1,6 @@
 import {rest,errorResponse,ApiError,isUuid} from '@/lib/server';
 import {SUPABASE_PUBLISHABLE_KEY} from '@/lib/config';
+import {isInvalidTerminalMessage} from '@/lib/terminal';
 export const dynamic='force-dynamic';
 export async function POST(req:Request){
  try{
@@ -15,5 +16,10 @@ export async function POST(req:Request){
    return Response.json(data,{headers:{'Cache-Control':'no-store'}});
   }
   throw new ApiError('Noma’lum amal');
- }catch(e){return errorResponse(e);}
+ }catch(e){
+  if(e instanceof Error&&isInvalidTerminalMessage(e.message)){
+   return Response.json({error:'Terminal kodi noto‘g‘ri yoki bekor qilingan. Qayta ulang.',code:'TERMINAL_UNAUTHORIZED'},{status:401,headers:{'Cache-Control':'no-store'}});
+  }
+  return errorResponse(e);
+ }
 }
