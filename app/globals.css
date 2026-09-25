@@ -144,3 +144,41 @@
 }
 
 .login-brand-mark{width:60px;height:60px;display:grid;place-items:center;background:rgba(224,189,131,.12);border:1px solid rgba(224,189,131,.4);border-radius:16px;color:#e8c88b}
+
+
+/* Management actions: maintain the original clean cream background and mobile-first layout. */
+.lesson-management-actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px}
+.lesson-management-actions .btn{min-height:41px}
+.lesson-roster-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #dce5ee;border-radius:12px;background:#fff;padding:15px 17px;margin:0 0 16px}
+.lesson-roster-tools>div{flex:1;min-width:170px}
+.lesson-roster-tools b{display:block;font-size:13px;color:#203951;margin-bottom:5px}
+.lesson-roster-tools .muted{margin:0;max-width:440px}
+.lesson-roster-tools select{min-width:190px;flex:0 1 250px}
+.lesson-roster-tools .btn{min-height:43px}
+.report-audit-card,.report-danger-zone{margin-top:18px;padding:20px;border:1px solid var(--line);background:white;border-radius:13px}
+.report-audit-card .card-heading{margin-bottom:14px}
+.report-audit-card .card-heading h2{font-size:17px}
+.audit-list{display:grid;gap:0}
+.audit-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;border-top:1px solid #edf0f4}
+.audit-row b{font-size:12px;color:#263e58}
+.audit-row small{font-size:11px;color:#8a96a6;display:block;margin-top:5px}
+.report-danger-zone{border-color:#f1d6da;background:#fffafa;display:flex;justify-content:space-between;align-items:center;gap:18px}
+.report-danger-zone h3{font-size:15px;color:#a63f49;margin:0 0 7px}
+.report-danger-zone p{font-size:12px;color:#93636a;line-height:1.6;max-width:640px;margin:0}
+.report-danger-zone .btn{min-height:43px;flex:none}
+.card-actions .btn{min-height:36px}
+@media(max-width:650px){
+ .lesson-management-actions{display:grid;grid-template-columns:1fr;gap:9px}
+ .lesson-management-actions .btn{width:100%;justify-content:center;white-space:normal;min-height:43px}
+ .lesson-roster-tools{padding:14px;display:grid;grid-template-columns:1fr}
+ .lesson-roster-tools>div,.lesson-roster-tools select,.lesson-roster-tools .btn{min-width:0;width:100%;max-width:none}
+ .lesson-roster-tools select{min-height:44px}
+ .mobile-student-actions{flex-wrap:wrap}
+ .mobile-student-actions .btn{flex:1 1 42%;white-space:normal}
+ .report-audit-card,.report-danger-zone{padding:15px}
+ .audit-row{align-items:flex-start;flex-direction:column;gap:7px}
+ .report-danger-zone{flex-direction:column;align-items:stretch;gap:14px}
+ .report-danger-zone .btn{width:100%;white-space:normal;line-height:1.5}
+ .toolbar-right{flex-wrap:wrap;justify-content:flex-end}
+ .toolbar-right .btn{min-height:41px}
+}
