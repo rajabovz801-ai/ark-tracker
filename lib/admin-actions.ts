@@ -63,6 +63,10 @@ export async function adminAction(req:Request,token:string,body:any){
   const patch:Record<string,unknown>={};
   if(typeof body.name==='string'){if(s(body.name).length<2)throw new ApiError('Ism juda qisqa');patch.name=s(body.name).slice(0,120);}
   if(typeof body.archived==='boolean')patch.archived=body.archived;
+  if(body.archived===true){
+   const active=await rest('sa_sessions?select=id&status=eq.active&limit=500',token);
+   if(active.length){const ids=active.map((row:{id:string})=>row.id).join(',');const unfinished=await rest('sa_attendance?select=session_id&student_id=eq.'+body.id+'&session_id=in.('+ids+')&checked_in=not.is.null&checked_out=is.null&limit=1',token);if(unfinished.length)throw new ApiError('Avval o‘quvchining faol darsdagi KETDIM vaqtini belgilang');}
+  }
   if(Object.keys(patch).length)await mutate('sa_students',token,'PATCH',patch,'?id=eq.'+body.id);
   if(Array.isArray(body.groupIds)){
    const target=[...new Set(body.groupIds.filter(isUuid))] as string[];
