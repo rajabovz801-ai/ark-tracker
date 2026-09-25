@@ -5,4 +5,5 @@ export type Session={id:string;group_id:string;lesson_date:string;planned_start:
 export type Attendance={session_id:string;student_id:string;checked_in:string|null;checked_out:string|null;late_min:number;status:'pending'|'present'|'absent';note:string;absence_reason:string;updated_at:string;};
 export type Event={id:number;session_id:string|null;student_id:string|null;actor_type:string;action:string;created_at:string;};
 export type Device={id:string;label:string;active:boolean;last_seen:string|null;created_at:string;};
-export type AdminData={groups:Group[];students:Student[];memberships:Membership[];sessions:Session[];attendance:Attendance[];events:Event[];devices:Device[];admin:{user_id:string;display_name:string;role:string};};
+export type DeletedRecord={id:number;kind:'session';target_id:string;group_id:string|null;lesson_date:string|null;deleted_at:string;restored_at:string|null;restored_by:string|null;snapshot:{group?:{name?:string};session?:{id:string};attendance?:unknown[]}};
+export type AdminData={deletedRecords:DeletedRecord[];groups:Group[];students:Student[];memberships:Membership[];sessions:Session[];attendance:Attendance[];events:Event[];devices:Device[];admin:{user_id:string;display_name:string;role:string};};

@@ -7,6 +7,32 @@ export async function adminAction(req:Request,token:string,body:any){
  const action:string=body.action;
  if(action==='claim'){if(!/^[a-f0-9]{48}$/i.test(s(body.code)))throw new ApiError('Aktivatsiya kodi noto‘g‘ri');return rest('rpc/sa_claim_owner',token,{method:'POST',body:JSON.stringify({p_code:s(body.code)})});}
  await authorize(req);
+ const rpc=async(name:string,payload:Record<string,unknown>)=>rest('rpc/'+name,token,{method:'POST',body:JSON.stringify(payload)});
+ if(action==='deleteGroup'){if(!isUuid(body.id))throw new ApiError('Guruh noto‘g‘ri');return rpc('sa_remove_group',{p_group_id:body.id});}
+ if(action==='deleteStudent'){if(!isUuid(body.id))throw new ApiError('O‘quvchi noto‘g‘ri');return rpc('sa_remove_student',{p_student_id:body.id});}
+ if(action==='addLesson'||action==='editLesson'){
+   if(action==='addLesson'&&!isUuid(body.groupId)||action==='editLesson'&&!isUuid(body.sessionId))throw new ApiError('Dars yoki guruh noto‘g‘ri');
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(s(body.date))||!validTime(s(body.start))||!validTime(s(body.end)))throw new ApiError('Dars sanasi va vaqtini tekshiring');
+   return rpc(action==='addLesson'?'sa_add_lesson':'sa_edit_lesson',
+     action==='addLesson'?{p_group_id:body.groupId,p_date:body.date,p_start:body.start,p_end:body.end}
+       :{p_id:body.sessionId,p_date:body.date,p_start:body.start,p_end:body.end});
+ }
+ if(action==='addLessonStudent'){
+   if(!isUuid(body.sessionId)||!isUuid(body.studentId))throw new ApiError('Dars yoki o‘quvchi noto‘g‘ri');
+   return rpc('sa_add_lesson_student',{p_session_id:body.sessionId,p_student_id:body.studentId});
+ }
+ if(action==='restoreLesson'){
+   if(!Number.isSafeInteger(body.auditId)||body.auditId<1)throw new ApiError('Audit yozuvi noto‘g‘ri');
+   return rpc('sa_restore_lesson',{p_deleted_id:body.auditId});
+ }
+ if(action==='deleteLesson'){
+   if(!isUuid(body.sessionId))throw new ApiError('Dars noto‘g‘ri');
+   return rpc('sa_delete_lesson',{p_id:body.sessionId});
+ }
+ if(action==='deleteDay'){
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(s(body.date))||body.groupId&&!isUuid(body.groupId))throw new ApiError('Sana yoki guruh noto‘g‘ri');
+   return rpc('sa_delete_day',{p_date:body.date,p_group_id:body.groupId||null});
+ }
  if(action==='addGroup'){
   const name=s(body.name),teacher=s(body.teacher).slice(0,100),start=s(body.starts_at)||'09:00',end=s(body.ends_at)||'10:30';
   if(name.length<2||name.length>80||!validTime(start)||!validTime(end))throw new ApiError('Guruh ma’lumotlarini tekshiring');
@@ -19,6 +45,7 @@ export async function adminAction(req:Request,token:string,body:any){
   if(body.late_grace_min!==undefined)patch.late_grace_min=Math.min(120,Math.max(0,Number(body.late_grace_min)||0));
   if(Array.isArray(body.weekdays))patch.weekdays=body.weekdays.filter((d:unknown)=>Number.isInteger(d)&&Number(d)>=0&&Number(d)<=6);
   if(typeof body.archived==='boolean')patch.archived=body.archived;
+  if(body.archived===true){const active=await rest('sa_sessions?select=id&group_id=eq.'+body.id+'&status=eq.active&limit=1',token);if(active.length)throw new ApiError('Guruhni arxivlashdan oldin faol darsni yakunlang yoki o‘chiring');}
   if(!Object.keys(patch).length)throw new ApiError('O‘zgartirish mavjud emas');
   return mutate('sa_groups',token,'PATCH',patch,'?id=eq.'+body.id);
  }
@@ -32,7 +59,7 @@ export async function adminAction(req:Request,token:string,body:any){
     const sessions=await rest('sa_sessions?select=id&group_id=eq.'+group_id+'&status=eq.active',token);
     for(const session of sessions)await rest('sa_attendance?on_conflict=session_id,student_id',token,{method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify({session_id:session.id,student_id:student.id})});
    }
-  }catch(e){await rest('sa_memberships?student_id=eq.'+student.id,token,{method:'DELETE'}).catch(()=>null);await rest('sa_students?id=eq.'+student.id,token,{method:'DELETE'}).catch(()=>null);throw e;}
+  }catch(e){await rpc('sa_remove_student',{p_student_id:student.id}).catch(()=>null);throw e;}
   return student;
  }
  if(action==='editStudent'){
@@ -40,6 +67,10 @@ export async function adminAction(req:Request,token:string,body:any){
   const patch:Record<string,unknown>={};
   if(typeof body.name==='string'){if(s(body.name).length<2)throw new ApiError('Ism juda qisqa');patch.name=s(body.name).slice(0,120);}
   if(typeof body.archived==='boolean')patch.archived=body.archived;
+  if(body.archived===true){
+   const active=await rest('sa_sessions?select=id&status=eq.active&limit=500',token);
+   if(active.length){const ids=active.map((row:{id:string})=>row.id).join(',');const unfinished=await rest('sa_attendance?select=session_id&student_id=eq.'+body.id+'&session_id=in.('+ids+')&checked_in=not.is.null&checked_out=is.null&limit=1',token);if(unfinished.length)throw new ApiError('Avval o‘quvchining faol darsdagi KETDIM vaqtini belgilang');}
+  }
   if(Object.keys(patch).length)await mutate('sa_students',token,'PATCH',patch,'?id=eq.'+body.id);
   if(Array.isArray(body.groupIds)){
    const target=[...new Set(body.groupIds.filter(isUuid))] as string[];
