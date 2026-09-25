@@ -54,8 +54,8 @@ export async function GET(req:Request){
    const ordered=[...rec].sort((a,b)=>(names.get(a.student_id)||'').localeCompare(names.get(b.student_id)||'','uz'));
    if(!ordered.length){doc.font('Helvetica').fontSize(11).fillColor('#7c8793').text('Hozircha ro‘yxatda o‘quvchi yo‘q.',48,y+18);}
    for(const a of ordered){
-    if(y>757){doc.addPage();y=header(true);}
-    const late=a.checked_in!==null&&a.late_min>(g?.late_grace_min||5);
+    if(y>738){doc.addPage();y=header(true);}
+    const late=a.checked_in!==null&&a.late_min>(g?.late_grace_min??5);
     const label=!a.checked_in?(session.status==='closed'?'KELMADI':'KUTILMOQDA'):late?'KECHIKDI':a.checked_out?'KETDI':'KELDI';
     if(row%2===1)doc.rect(44,y,507,23).fill('#F9FAFC');
     const values=[String(++row),clean(names.get(a.student_id)||'—').slice(0,31),formatTashkent(a.checked_in),formatTashkent(a.checked_out),durationLabel(durationMinutes(a.checked_in,a.checked_out)),label];
@@ -65,10 +65,15 @@ export async function GET(req:Request){
     doc.moveTo(44,y+23).lineTo(551,y+23).strokeColor('#E7EBF0').lineWidth(.5).stroke();
     y+=24;
    }
-   doc.font('Helvetica').fontSize(8).fillColor('#7C8794').text('Holatlar dars vaqti va terminal qaydlari asosida shakllantirilgan. Ma’lumotlar admin tomonidan tuzatilishi mumkin.',44,Math.min(y+22,760),{width:507});
   }
   const pages=doc.bufferedPageRange();
-  for(let i=pages.start;i<pages.start+pages.count;i++){doc.switchToPage(i);doc.moveTo(44,797).lineTo(551,797).strokeColor('#C79B54').stroke();doc.font('Helvetica').fontSize(8).fillColor('#637083').text('ARK EDUCATION  |  Smart Attendance',44,805);doc.text('Sahifa '+(i+1)+' / '+pages.count,455,805,{width:95,align:'right'});}
+  for(let i=pages.start;i<pages.start+pages.count;i++){
+    doc.switchToPage(i);
+    doc.page.margins.bottom=10;
+    doc.moveTo(44,797).lineTo(551,797).strokeColor('#C79B54').stroke();
+    doc.font('Helvetica').fontSize(8).fillColor('#637083').text('ARK EDUCATION  |  Smart Attendance',44,805,{lineBreak:false});
+    doc.text('Sahifa '+(i+1)+' / '+pages.count,455,805,{width:95,align:'right',lineBreak:false});
+  }
   doc.end();const pdf=await done;
   return new Response(new Uint8Array(pdf) as BodyInit,{headers:{'Content-Type':'application/pdf','Content-Disposition':'attachment; filename="ark-attendance-report.pdf"','Cache-Control':'private, no-store'}});
  }catch(e){return errorResponse(e);}
