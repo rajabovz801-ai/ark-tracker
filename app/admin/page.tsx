@@ -33,10 +33,10 @@ export default function Admin(){
   if(!token)throw new Error('Sessiya tugagan');
   const res=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({action,...params})});
   const json=await res.json();if(!res.ok)throw new Error(json.error||'Saqlashda xatolik');
-  if(action==='deleteDay'||action==='deleteLesson'){
+  if(action==='deleteDay'||action==='deleteLesson'||action==='restoreLesson'){
     setPreviewUrl('');setSelectedSession('');
   }
-  setNotice(json.mode==='archived'?'Tarixiy davomatni saqlash uchun arxivga o‘tkazildi.':json.mode==='deleted'?'Ma’lumot o‘chirildi.':typeof json.deleted==='number'?json.deleted+' ta dars o‘chirildi, audit nusxalari saqlandi.':'Muvaffaqiyatli saqlandi');
+  setNotice(json.mode==='archived'?'Tarixiy davomatni saqlash uchun arxivga o‘tkazildi.':json.mode==='deleted'?'Ma’lumot o‘chirildi.':json.restored===true?'Dars davomat bilan birga tiklandi.':typeof json.deleted==='number'?json.deleted+' ta dars o‘chirildi, audit nusxalari saqlandi.':'Muvaffaqiyatli saqlandi');
   await load(true);return json;
  }catch(e){const msg=e instanceof Error?e.message:'Xatolik';setError(msg);throw e;}finally{setBusy(false);}};
  const pdfRequest=async(query:string,mode:'download'|'preview'|'print')=>{setBusy(true);setError('');try{
