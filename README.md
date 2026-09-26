@@ -15,7 +15,7 @@ Production-minded attendance MVP for a supervised Samsung Note 10 terminal and a
 2. Run schema migration supabase/migrations/20260925_attendance_schema.sql followed by supabase/migrations/20260925_attendance_rpcs.sql on the confirmed Supabase project. These migrations have already been applied to the connected project and recorded in Supabase migration history.
 3. Use a privileged database console to run SELECT public.sa_initialize_bootstrap(); ONLY ONCE, then record the returned one-time activation code securely. Do not publish the code in GitHub or expose it to students. Log in / sign up at /login, then enter this code in /admin to claim the first administrator account. The activation function only works while there are no administrators.
 4. From /admin → Sozlamalar generate a Note 10 terminal token. Copy it only into the /terminal setup screen on the school phone. Keep it private. Revoking a device instantly blocks future requests.
-5. In /admin → Guruhlar configure group/teacher/class times. Add students in /admin → O‘quvchilar. Open a class from the dashboard before students check in. End lesson after class, verify missing checkouts, then export /admin → Hisobotlar PDF.
+5. In /admin → Guruhlar configure group/teacher/class times. Add students in /admin → O‘quvchilar. Students can check in or check out from the supervised /terminal **before the admin opens class**. Admin opening the lesson imports those original timestamps. KETDIM also works **during an active lesson**; it does not require waiting for scheduled class end. After class, end the session, verify missing checkouts, and export /admin → Hisobotlar PDF.
 
 ## Security model
 Only the public Supabase project URL and public publishable key are bundled, never the service role key. Client auth sessions use Supabase Auth while server-side admin routes validate access tokens and database row-level security. Kiosk RPCs validate hashed, dedicated and revocable device tokens. Student identity is selected on a supervised terminal, not biometrically verified. Protect physical access to the phone.
@@ -53,3 +53,23 @@ Apply manually in the following order; do not assume alphabetical names are chro
 7. 20260926_attendance_audit_restore.sql
 
 These changes have already been applied to the connected production Supabase database. All database integration tests use explicit transactions rolled back afterward; existing users and original Tracker data were not deleted. Admin operations remain protected by Supabase Auth and RLS. Kiosk check-in/out continues to require a revocable device token.
+
+## 2026-09-26: Early arrival and early departure
+
+The /terminal screen lists **every non-archived group with its active members**, regardless of class session status. The administrator still activates the supervised phone once with its revocable 48-character device token; students do not need personal accounts. Each name selection and KELDIM/KETDIM is committed to Supabase immediately before a success message appears. The device refreshes the list every ~7 seconds; the administrator dashboard refreshes every ~5 seconds.
+
+Before class opens, arrival/departure timestamps are saved in `sa_pre_attendance` (unique per day/group/student). Both a regular "Darsni ochish" and manually adding today's lesson atomically import the saved check-ins **and check-outs** into ordinary `sa_attendance`. The same terminal uses the normal attendance records for further actions while the lesson is active; KETDIM works at any point during class, not only at the planned end. Repeat KELDIM/KETDIM is rejected. After today's lesson has ended, the terminal shows the group as completed and disables it. Archived groups and students disappear from the terminal. No success message is displayed if the network request fails.
+
+The admin dashboard and live attendance page display pre-class entries as they arrive, and they appear in standard daily reports once the class is opened. Removing groups or students with early attendance archives rather than hard-deleting them; a same-day unfinished early check-in must be checked out before removal. Early events are audited with the group ID even before a session exists. Historical Tracker data remain untouched.
+
+New migrations (apply in this order after earlier migrations):
+
+1. `20260926_early_attendance_table.sql`
+2. `20260926_early_attendance_snapshot.sql`
+3. `20260926_early_attendance_event.sql`
+4. `20260926_early_attendance_open.sql`
+5. `20260926_early_attendance_add_lesson.sql`
+6. `20260926_early_attendance_student_guard.sql`
+7. `20260926_early_attendance_group_guard.sql`
+
+These migrations are additive and have been applied to the connected database. Prior `sa_kiosk_snapshot` and `sa_kiosk_event` still exist for compatibility; the new terminal routes use their `_v2` equivalents.
