@@ -3,7 +3,10 @@ import {authorize,rest,errorResponse,isUuid,ApiError} from '@/lib/server';
 import {dailyCounts,formatTashkent,durationLabel,durationMinutes} from '@/lib/domain';
 import type {Group,Student,Session,Attendance} from '@/lib/types';
 export const dynamic='force-dynamic';
-const clean=(v:unknown)=>String(v??'').replace(/[\u2018\u2019\u02bb\u02bc]/g,"'").replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?');
+const cyrillic:Record<string,string>={А:'A',а:'a',Б:'B',б:'b',В:'V',в:'v',Г:'G',г:'g',Д:'D',д:'d',Е:'E',е:'e',Ё:'Yo',ё:'yo',Ж:'J',ж:'j',З:'Z',з:'z',И:'I',и:'i',Й:'Y',й:'y',К:'K',к:'k',Л:'L',л:'l',М:'M',м:'m',Н:'N',н:'n',О:'O',о:'o',П:'P',п:'p',Р:'R',р:'r',С:'S',с:'s',Т:'T',т:'t',У:'U',у:'u',Ф:'F',ф:'f',Х:'X',х:'x',Ц:'Ts',ц:'ts',Ч:'Ch',ч:'ch',Ш:'Sh',ш:'sh',Щ:'Sh',щ:'sh',Ъ:'',ъ:'',Ь:'',ь:'',Э:'E',э:'e',Ю:'Yu',ю:'yu',Я:'Ya',я:'ya',Ў:"O'",ў:"o'",Ғ:"G'",ғ:"g'",Қ:'Q',қ:'q',Ҳ:'H',ҳ:'h'};
+const clean=(v:unknown)=>String(v??'').replace(/[‘’ʻʼ]/g,"'").replace(/[–—]/g,'-').replace(/…/g,'...')
+ .replace(/./gu,ch=>cyrillic[ch]??ch).normalize('NFD')
+ .replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7e]/g,'');
 export async function GET(req:Request){
  try{
   const {token}=await authorize(req);
@@ -31,38 +34,38 @@ export async function GET(req:Request){
    const rec=attendance.filter(a=>a.session_id===session.id);
    const stats=dailyCounts(rec,g?.late_grace_min??5);
    function header(continued=false){
-    doc.rect(0,0,595,85).fill('#182D45');
-    doc.font('Helvetica-Bold').fontSize(17).fillColor('#F2D6A0').text('ARK EDUCATION',44,24);
+    doc.rect(0,0,595,85).fill('#141414');
+    doc.font('Helvetica-Bold').fontSize(17).fillColor('#FFFFFF').text('ARK EDUCATION',44,24);
     doc.font('Helvetica').fontSize(8).fillColor('#FFFFFF').text('SMART ATTENDANCE  |  BILIM  -  INTIZOM  -  NATIJA',44,51);
-    doc.rect(44,88,508,2).fill('#C79B54');
-    doc.fillColor('#182D45').font('Helvetica-Bold').fontSize(17).text(continued?'DAVOMAT HISOBOTI (DAVOMI)':'KUNLIK DAVOMAT HISOBOTI',44,107);
-    doc.fontSize(10).font('Helvetica').fillColor('#5b6775');
+    doc.rect(44,88,508,2).fill('#333333');
+    doc.fillColor('#141414').font('Helvetica-Bold').fontSize(17).text(continued?'DAVOMAT HISOBOTI (DAVOMI)':'KUNLIK DAVOMAT HISOBOTI',44,107);
+    doc.fontSize(10).font('Helvetica').fillColor('#555555');
     doc.text('Sana: '+clean(session.lesson_date)+'   |   Guruh: '+clean(g?.name||'—'),44,136);
     doc.text('O‘qituvchi: '+clean(g?.teacher||'—')+'   |   Dars: '+formatTashkent(session.planned_start)+' - '+formatTashkent(session.planned_end),44,153);
     if(!continued){
-     const tiles=[['JAMI',stats.total],['KELDI',stats.present],['KELMADI',stats.absent],['KECHIKDI',stats.late],['KETISH YO‘Q',stats.missingCheckout]];
-     tiles.forEach(([label,count],n)=>{const x=44+n*103;doc.roundedRect(x,180,96,54,5).fill('#F4F6F9');doc.fillColor('#6B7789').font('Helvetica').fontSize(8).text(String(label),x+10,190,{width:77});doc.fillColor('#182D45').font('Helvetica-Bold').fontSize(18).text(String(count),x+10,204);});
-     doc.font('Helvetica').fontSize(9).fillColor('#657080').text('Davomat: '+stats.percent+'%. Kechikkanlar kelganlar tarkibida hisoblanadi.',44,247);
+     const tiles=[['JAMI',stats.total],['KELDI',stats.present],['KELMADI',stats.absent],['KECHIKDI',stats.late],['KUTILMOQDA',stats.pending]];
+     tiles.forEach(([label,count],n)=>{const x=44+n*103;doc.roundedRect(x,180,96,54,5).fill('#F5F5F5');doc.fillColor('#555555').font('Helvetica').fontSize(8).text(String(label),x+10,190,{width:77});doc.fillColor('#141414').font('Helvetica-Bold').fontSize(18).text(String(count),x+10,204);});
+     doc.font('Helvetica').fontSize(9).fillColor('#555555').text('Davomat: '+stats.percent+'%. Kechikkanlar kelganlar tarkibida hisoblanadi.',44,247);
     }
     const y=continued?184:272;
-    doc.rect(44,y,507,27).fill('#E9EEF5');
+    doc.rect(44,y,507,27).fill('#EBEBEB');
     const h=['#','O‘QUVCHI','KELDI','KETDI','DAVOMIYLIGI','HOLAT'],x=[52,76,260,321,381,468],w=[20,175,56,56,81,76];
-    doc.font('Helvetica-Bold').fillColor('#182D45').fontSize(8);h.forEach((t,j)=>doc.text(t,x[j],y+9,{width:w[j]}));
+    doc.font('Helvetica-Bold').fillColor('#141414').fontSize(8);h.forEach((t,j)=>doc.text(t,x[j],y+9,{width:w[j]}));
     return y+29;
    }
    let y=header(),row=0;
    const ordered=[...rec].sort((a,b)=>(names.get(a.student_id)||'').localeCompare(names.get(b.student_id)||'','uz'));
-   if(!ordered.length){doc.font('Helvetica').fontSize(11).fillColor('#7c8793').text('Hozircha ro‘yxatda o‘quvchi yo‘q.',48,y+18);}
+   if(!ordered.length){doc.font('Helvetica').fontSize(11).fillColor('#777777').text('Hozircha ro‘yxatda o‘quvchi yo‘q.',48,y+18);}
    for(const a of ordered){
     if(y>738){doc.addPage();y=header(true);}
     const late=a.checked_in!==null&&a.late_min>(g?.late_grace_min??5);
     const label=!a.checked_in?(session.status==='closed'?'KELMADI':'KUTILMOQDA'):late?'KECHIKDI':a.checked_out?'KETDI':'KELDI';
-    if(row%2===1)doc.rect(44,y,507,23).fill('#F9FAFC');
+    if(row%2===1)doc.rect(44,y,507,23).fill('#F8F8F8');
     const values=[String(++row),clean(names.get(a.student_id)||'—').slice(0,31),formatTashkent(a.checked_in),formatTashkent(a.checked_out),durationLabel(durationMinutes(a.checked_in,a.checked_out)),label];
     const x=[52,76,260,321,381,468],w=[20,175,56,56,81,77];
-    doc.font('Helvetica').fontSize(8.5).fillColor('#24354A');
+    doc.font('Helvetica').fontSize(8.5).fillColor('#141414');
     values.forEach((v,j)=>doc.text(clean(v),x[j],y+7,{width:w[j],height:14,ellipsis:true,lineBreak:false}));
-    doc.moveTo(44,y+23).lineTo(551,y+23).strokeColor('#E7EBF0').lineWidth(.5).stroke();
+    doc.moveTo(44,y+23).lineTo(551,y+23).strokeColor('#CCCCCC').lineWidth(.5).stroke();
     y+=24;
    }
   }
@@ -70,11 +73,11 @@ export async function GET(req:Request){
   for(let i=pages.start;i<pages.start+pages.count;i++){
     doc.switchToPage(i);
     doc.page.margins.bottom=10;
-    doc.moveTo(44,797).lineTo(551,797).strokeColor('#C79B54').stroke();
-    doc.font('Helvetica').fontSize(8).fillColor('#637083').text('ARK EDUCATION  |  Smart Attendance',44,805,{lineBreak:false});
+    doc.moveTo(44,797).lineTo(551,797).strokeColor('#333333').stroke();
+    doc.font('Helvetica').fontSize(8).fillColor('#555555').text('ARK EDUCATION CENTRE | Smart Attendance',44,805,{lineBreak:false});
     doc.text('Sahifa '+(i+1)+' / '+pages.count,455,805,{width:95,align:'right',lineBreak:false});
   }
   doc.end();const pdf=await done;
-  return new Response(new Uint8Array(pdf) as BodyInit,{headers:{'Content-Type':'application/pdf','Content-Disposition':'attachment; filename="ark-attendance-report.pdf"','Cache-Control':'private, no-store'}});
+  return new Response(new Uint8Array(pdf) as BodyInit,{headers:{'Content-Type':'application/pdf','Content-Disposition':'attachment; filename="ARK_Davomat_'+clean(date||sessions[0]?.lesson_date||'hisobot')+'.pdf"','Cache-Control':'private, no-store'}});
  }catch(e){return errorResponse(e);}
 }

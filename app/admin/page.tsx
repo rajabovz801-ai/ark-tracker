@@ -43,9 +43,25 @@ export default function Admin(){
   const {data:auth}=await supabase.auth.getSession();const token=auth.session?.access_token;if(!token)throw new Error('Qayta kiring');
   const res=await fetch('/api/report?'+query,{headers:{Authorization:'Bearer '+token},cache:'no-store'});
   if(!res.ok){const x=await res.json().catch(()=>({}));throw new Error(x.error||'PDF yaratilmagan');}
-  const url=URL.createObjectURL(await res.blob());
-  if(mode==='download'){const a=document.createElement('a');a.href=url;a.download='ARK_Davomat_'+date+'.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
-  else{setPreviewUrl(url);if(mode==='print'){const win=window.open(url,'_blank');if(!win)setNotice('PDF oynasidagi chop etish tugmasidan foydalaning.');}}
+  const raw=await res.arrayBuffer();
+  if(raw.byteLength<50||new TextDecoder().decode(raw.slice(0,5))!=='%PDF-')
+    throw new Error('PDF fayli noto‘g‘ri qaytdi. Qayta urining.');
+  const url=URL.createObjectURL(new Blob([raw],{type:'application/pdf'}));
+  if(mode==='download'){
+    const a=document.createElement('a');
+    const requestedDay=new URLSearchParams(query).get('date')||date;
+    a.href=url;a.download='ARK_Davomat_'+requestedDay+'.pdf';
+    a.rel='noopener';
+    if(/iP(ad|hone|od)/.test(navigator.userAgent))a.target='_blank';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),120000);
+  }else{
+    setPreviewUrl(url);
+    if(mode==='print'){
+      const win=window.open(url,'_blank','noopener');
+      if(!win)setNotice('PDF ko‘rinishidan Chop etishni tanlang.');
+    }
+  }
  }catch(e){setError(e instanceof Error?e.message:'PDF xatosi');}finally{setBusy(false);}};
  const exportSession=async(sessionId:string,preview=false)=>pdfRequest('session='+encodeURIComponent(sessionId),preview?'preview':'download');
  const exportDate=async(mode:'preview'|'download'|'print',reportDate:string,groupId:string)=>pdfRequest('date='+reportDate+(groupId?'&group='+groupId:''),mode);
