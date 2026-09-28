@@ -1,6 +1,6 @@
 import PDFDocument from 'pdfkit';
 import {authorize,rest,errorResponse,isUuid,ApiError} from '@/lib/server';
-import {dailyCounts,formatTashkent,durationLabel,durationMinutes} from '@/lib/domain';
+import {dailyCounts,formatTashkent,durationLabel,durationMinutes,statusLabel} from '@/lib/domain';
 import type {Group,Student,Session,Attendance} from '@/lib/types';
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -92,9 +92,7 @@ export async function GET(req:Request){
       for(const [i,row] of slice.entries()){
         const y=186+i*13.7;
         if(i%2===1)doc.rect(left,y,width,13.7).fill('#F8F8F8');
-        const late=!!row.checked_in&&row.late_min>(g?.late_grace_min??5);
-        const status=!row.checked_in?(session.status==='closed'?'KELMADI':'KUTILMOQDA'):
-          late?'KECHIKDI':row.checked_out?'KETDI':'KELDI';
+        const status=statusLabel(row,session.status==='closed',g?.late_grace_min??5,session.planned_start).toLocaleUpperCase('uz-UZ');
         const values=[String(from+i+1).padStart(2,'0'),names.get(row.student_id)||'O‘quvchi',
           formatTashkent(row.checked_in),formatTashkent(row.checked_out),
           durationLabel(durationMinutes(row.checked_in,row.checked_out)),status];
