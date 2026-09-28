@@ -14,7 +14,7 @@ const cy:Record<string,string>={А:'A',а:'a',Б:'B',б:'b',В:'V',в:'v',Г:'G'
 const clean=(v:unknown)=>[...String(v??'')].map(c=>cy[c]??c).join('')
  .replace(/[‘’ʻʼ]/g,"'").replace(/[–—]/g,'-').normalize('NFKD')
  .replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7E]/g,'');
-export const LANDSCAPE_PAGE_ROWS=27;
+const LANDSCAPE_PAGE_ROWS=27;
 export async function GET(req:Request){
  try{
   const {token}=await authorize(req);
