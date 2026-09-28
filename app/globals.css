@@ -182,3 +182,15 @@
  .toolbar-right{flex-wrap:wrap;justify-content:flex-end}
  .toolbar-right .btn{min-height:41px}
 }
+
+/* Mobile browser stability: prevent automatic focus zoom while keeping user pinch-zoom available. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:1024px), (pointer:coarse){
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]):not([type="color"]),
+  select,textarea{font-size:16px!important;max-width:100%}
+}
+@media (max-width:650px){
+  .bottom-nav-item span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .mobile-live-head>.badge,.mobile-group-head>.badge{max-width:48%;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.3;text-align:center}
+  .terminal-group-card strong{max-width:100%;overflow-wrap:anywhere}
+}
